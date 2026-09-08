@@ -100,6 +100,12 @@ pub struct Config {
 
     #[arg(long, env = "CHAINLENS_RPC_MAX_RETRIES", default_value_t = 3)]
     pub rpc_max_retries: u32,
+
+    #[arg(long, env = "CHAINLENS_BACKFILL_FROM", default_value_t = 0)]
+    pub backfill_from: u64,
+
+    #[arg(long, env = "CHAINLENS_HEAD_POLL_SECS", default_value_t = 4)]
+    pub head_poll_secs: u64,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -245,6 +251,8 @@ mod tests {
             rpc_rate_limit: 10,
             rpc_timeout_secs: 30,
             rpc_max_retries: 3,
+            backfill_from: 0,
+            head_poll_secs: 4,
         }
     }
 

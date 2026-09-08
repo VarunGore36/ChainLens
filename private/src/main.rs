@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use anyhow::Context;
+use chainlens::pipeline::{committer, head_watcher, scheduler};
 use chainlens::rpc::EthClient;
 use chainlens::rpc::http::{HttpRpcClient, HttpRpcConfig};
 use chainlens::rpc::ratelimit::RateLimit;
@@ -24,12 +25,8 @@ async fn main() -> anyhow::Result<()> {
         version = env!("CARGO_PKG_VERSION"),
         rpc_url = %config.rpc_url,
         database_url = %config.database_url,
-        db_max_connections = config.db_max_connections,
-        db_connect_timeout_secs = config.db_connect_timeout_secs,
-        rpc_rate_limit = config.rpc_rate_limit,
-        rpc_timeout_secs = config.rpc_timeout_secs,
-        rpc_max_retries = config.rpc_max_retries,
-        log_format = ?config.log_format,
+        backfill_from = config.backfill_from,
+        head_poll_secs = config.head_poll_secs,
         "chainlens starting"
     );
 
@@ -79,8 +76,68 @@ async fn main() -> anyhow::Result<()> {
         "RPC client ready"
     );
 
-    tracing::info!("no pipeline yet; phase 4 idles until a shutdown signal arrives");
-    shutdown.cancelled().await;
+    let mut cursor = store
+        .last_indexed_block()
+        .await
+        .context("failed to read cursor")?
+        .map(|(n, _)| n)
+        .unwrap_or(config.backfill_from.saturating_sub(1));
+
+    tracing::info!(cursor, "starting pipeline");
+
+    let poll_interval = Duration::from_secs(config.head_poll_secs);
+    let mut blocks_indexed: u64 = 0;
+    let mut last_log = std::time::Instant::now();
+
+    loop {
+        if shutdown.is_cancelled() {
+            tracing::info!("shutdown requested, stopping pipeline");
+            break;
+        }
+
+        let head = tokio::select! {
+            result = head_watcher::watch(&rpc_client, poll_interval, shutdown.clone()) => {
+                match result {
+                    Some(h) => h,
+                    None => break,
+                }
+            }
+        };
+
+        tracing::debug!(
+            latest = head.latest,
+            safe = head.safe,
+            finalized = head.finalized,
+            cursor,
+            "chain head"
+        );
+
+        while let Some(next) = scheduler::next_block(cursor, &head, config.backfill_from) {
+            if shutdown.is_cancelled() {
+                break;
+            }
+
+            match committer::commit_block(&rpc_client, &store, next).await {
+                Ok(()) => {
+                    blocks_indexed += 1;
+                    cursor = next;
+
+                    if last_log.elapsed() >= Duration::from_secs(10) {
+                        let lag = head.latest.saturating_sub(cursor);
+                        tracing::info!(cursor, lag, blocks_indexed, "indexing progress");
+                        last_log = std::time::Instant::now();
+                    }
+                }
+                Err(e) => {
+                    tracing::error!(error = %e, block = next, "failed to commit block");
+                    tokio::select! {
+                        () = tokio::time::sleep(Duration::from_secs(1)) => {}
+                        () = shutdown.cancelled() => break,
+                    }
+                }
+            }
+        }
+    }
 
     tracing::info!("closing the connection pool");
     pool.close().await;
