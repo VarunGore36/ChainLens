@@ -48,7 +48,10 @@ async fn main() -> anyhow::Result<()> {
     tracing::info!(postgres = %server, "database ready");
 
     let store = PostgresStore::new(pool.clone());
-    store.run_migrations().await.context("failed to run database migrations")?;
+    store
+        .run_migrations()
+        .await
+        .context("failed to run database migrations")?;
     tracing::info!("migrations applied");
 
     let rpc_config = HttpRpcConfig {

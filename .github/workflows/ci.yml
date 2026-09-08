@@ -70,6 +70,8 @@ jobs:
     name: dependency advisories
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
     steps:
       - uses: actions/checkout@v4
       - uses: rustsec/audit-check@v2
