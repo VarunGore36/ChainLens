@@ -70,6 +70,9 @@ jobs:
     name: dependency advisories
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      checks: write
+      contents: read
     env:
       ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
     steps:
