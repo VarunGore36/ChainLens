@@ -1,0 +1,43 @@
+{
+  "lastUpdated": "2026-09-09T00:00:00Z",
+  "version": "0.1.0",
+  "status": "Phase 4 complete",
+  "sampleData": true,
+  "summary": {
+    "sequentialThroughput": {
+      "value": "~150",
+      "unit": "blocks/sec",
+      "phase": "5 (baseline pending)"
+    },
+    "decodeLatency": {
+      "value": 150,
+      "unit": "ns",
+      "description": "per block with ERC-20 transfer"
+    },
+    "maxReorgDepth": 128,
+    "totalTests": 63,
+    "testsPassing": 63
+  },
+  "decodeBenchmarks": [
+    {"name": "decode_empty_block", "time_ns": 28.3, "status": "pass"},
+    {"name": "decode_legacy_tx", "time_ns": 67.2, "status": "pass"},
+    {"name": "decode_eip1559_with_erc20", "time_ns": 150.6, "status": "pass"},
+    {"name": "decode_erc721", "time_ns": 125.6, "status": "pass"},
+    {"name": "decode_contract_creation", "time_ns": 65.1, "status": "pass"},
+    {"name": "decode_multi_tx_with_logs", "time_ns": 241.5, "status": "pass"}
+  ],
+  "phases": [
+    {"id": 1, "name": "Foundation and scaffolding", "status": "complete"},
+    {"id": 2, "name": "RPC client", "status": "complete"},
+    {"id": 3, "name": "Domain model and decoding", "status": "complete"},
+    {"id": 4, "name": "Schema and commit", "status": "complete"},
+    {"id": 5, "name": "Sequential pipeline", "status": "next"},
+    {"id": 6, "name": "Reorg handling", "status": "planned"},
+    {"id": 7, "name": "Crash recovery", "status": "planned"},
+    {"id": 8, "name": "Observability", "status": "planned"},
+    {"id": 9, "name": "Concurrency", "status": "planned"},
+    {"id": 10, "name": "Query API", "status": "planned"},
+    {"id": 11, "name": "Benchmarking", "status": "planned"},
+    {"id": 12, "name": "Documentation", "status": "planned"}
+  ]
+}

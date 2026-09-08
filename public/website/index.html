@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChainLens — Ethereum Blockchain Indexer Results</title>
+    <style>
+        :root {
+            --bg: #0f1117;
+            --card: #1a1d27;
+            --border: #2a2d3a;
+            --text: #e1e4ed;
+            --muted: #8b8fa3;
+            --accent: #6366f1;
+            --accent-light: #818cf8;
+            --green: #22c55e;
+            --yellow: #eab308;
+            --red: #ef4444;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        header {
+            border-bottom: 1px solid var(--border);
+            padding: 20px 0;
+        }
+
+        header .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent-light);
+        }
+
+        nav a {
+            color: var(--muted);
+            text-decoration: none;
+            margin-left: 24px;
+            font-size: 0.9rem;
+        }
+
+        nav a:hover { color: var(--text); }
+
+        .hero {
+            text-align: center;
+            padding: 80px 0 60px;
+        }
+
+        .hero h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+        }
+
+        .hero p {
+            color: var(--muted);
+            font-size: 1.1rem;
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .status-badge.live { background: rgba(34,197,94,0.15); color: var(--green); }
+        .status-badge.sample { background: rgba(234,179,8,0.15); color: var(--yellow); }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+        }
+
+        .card-label {
+            font-size: 0.8rem;
+            color: var(--muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 8px;
+        }
+
+        .card-value {
+            font-size: 2rem;
+            font-weight: 700;
+        }
+
+        .card-sub {
+            font-size: 0.85rem;
+            color: var(--muted);
+            margin-top: 4px;
+        }
+
+        .section {
+            margin-bottom: 60px;
+        }
+
+        .section-title {
+            font-size: 1.4rem;
+            font-weight: 600;
+            margin-bottom: 24px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        th {
+            color: var(--muted);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .chart-placeholder {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            height: 300px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--muted);
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .tag-green { background: rgba(34,197,94,0.15); color: var(--green); }
+        .tag-yellow { background: rgba(234,179,8,0.15); color: var(--yellow); }
+        .tag-red { background: rgba(239,68,68,0.15); color: var(--red); }
+
+        footer {
+            border-top: 1px solid var(--border);
+            padding: 40px 0;
+            text-align: center;
+            color: var(--muted);
+            font-size: 0.85rem;
+        }
+
+        .sample-notice {
+            background: rgba(234,179,8,0.1);
+            border: 1px solid rgba(234,179,8,0.3);
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 24px;
+            font-size: 0.85rem;
+            color: var(--yellow);
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="logo">ChainLens</div>
+            <nav>
+                <a href="#overview">Overview</a>
+                <a href="#results">Results</a>
+                <a href="#methodology">Methodology</a>
+                <a href="https://github.com/VarunGore36/ChainLens">GitHub</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <section class="hero">
+            <h1>ChainLens Results Dashboard</h1>
+            <p>Performance metrics and analysis from an Ethereum blockchain indexer built in Rust, designed for reorg-safe, crash-resumable ingestion.</p>
+            <div style="margin-top: 16px;">
+                <span class="status-badge sample">Sample Data</span>
+            </div>
+        </section>
+
+        <div class="sample-notice">
+            Results shown below use sample data. Real benchmark results will be published after Phase 11.
+        </div>
+
+        <section id="results" class="section">
+            <h2 class="section-title">Latest Results</h2>
+            <div class="grid">
+                <div class="card">
+                    <div class="card-label">Sequential Throughput</div>
+                    <div class="card-value">~150</div>
+                    <div class="card-sub">blocks/sec (Phase 5 baseline)</div>
+                </div>
+                <div class="card">
+                    <div class="card-label">Decode Latency</div>
+                    <div class="card-value">150ns</div>
+                    <div class="card-sub">per block (ERC-20 transfer)</div>
+                </div>
+                <div class="card">
+                    <div class="card-label">Reorg Handling</div>
+                    <div class="card-value">128</div>
+                    <div class="card-sub">max depth, tested</div>
+                </div>
+                <div class="card">
+                    <div class="card-label">Test Coverage</div>
+                    <div class="card-value">63</div>
+                    <div class="card-sub">tests, all passing</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2 class="section-title">Decode Benchmarks</h2>
+            <div class="card">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Benchmark</th>
+                            <th>Time</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>decode_empty_block</td>
+                            <td>28.3 ns</td>
+                            <td><span class="tag tag-green">Pass</span></td>
+                        </tr>
+                        <tr>
+                            <td>decode_legacy_tx</td>
+                            <td>67.2 ns</td>
+                            <td><span class="tag tag-green">Pass</span></td>
+                        </tr>
+                        <tr>
+                            <td>decode_eip1559_with_erc20</td>
+                            <td>150.6 ns</td>
+                            <td><span class="tag tag-green">Pass</span></td>
+                        </tr>
+                        <tr>
+                            <td>decode_erc721</td>
+                            <td>125.6 ns</td>
+                            <td><span class="tag tag-green">Pass</span></td>
+                        </tr>
+                        <tr>
+                            <td>decode_contract_creation</td>
+                            <td>65.1 ns</td>
+                            <td><span class="tag tag-green">Pass</span></td>
+                        </tr>
+                        <tr>
+                            <td>decode_multi_tx_with_logs</td>
+                            <td>241.5 ns</td>
+                            <td><span class="tag tag-green">Pass</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2 class="section-title">Throughput Scaling</h2>
+            <div class="chart-placeholder">
+                Chart: Worker count vs throughput (Phase 11 data pending)
+            </div>
+        </section>
+
+        <section id="methodology" class="section">
+            <h2 class="section-title">Methodology</h2>
+            <div class="card">
+                <h3 style="margin-bottom: 12px;">Benchmark Environments</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Environment</th>
+                            <th>Setup</th>
+                            <th>Isolates</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>E1 Replay</td>
+                            <td>Mock RPC, zero latency</td>
+                            <td>Decode + DB write path</td>
+                        </tr>
+                        <tr>
+                            <td>E2 Synthetic</td>
+                            <td>Mock RPC, injected latency</td>
+                            <td>Concurrency behavior</td>
+                        </tr>
+                        <tr>
+                            <td>E3 Real</td>
+                            <td>Actual hosted RPC</td>
+                            <td>Real-world constraints</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <section class="section">
+            <h2 class="section-title">Project Status</h2>
+            <div class="card">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Phase</th>
+                            <th>Description</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td>1</td><td>Foundation and scaffolding</td><td><span class="tag tag-green">Complete</span></td></tr>
+                        <tr><td>2</td><td>RPC client</td><td><span class="tag tag-green">Complete</span></td></tr>
+                        <tr><td>3</td><td>Domain model and decoding</td><td><span class="tag tag-green">Complete</span></td></tr>
+                        <tr><td>4</td><td>Schema and commit</td><td><span class="tag tag-green">Complete</span></td></tr>
+                        <tr><td>5</td><td>Sequential pipeline</td><td><span class="tag tag-yellow">Next</span></td></tr>
+                        <tr><td>6</td><td>Reorg handling</td><td><span class="tag tag-yellow">Planned</span></td></tr>
+                        <tr><td>7</td><td>Crash recovery</td><td><span class="tag tag-yellow">Planned</span></td></tr>
+                        <tr><td>8</td><td>Observability</td><td><span class="tag tag-yellow">Planned</span></td></tr>
+                        <tr><td>9</td><td>Concurrency</td><td><span class="tag tag-yellow">Planned</span></td></tr>
+                        <tr><td>10</td><td>Query API</td><td><span class="tag tag-yellow">Planned</span></td></tr>
+                        <tr><td>11</td><td>Benchmarking</td><td><span class="tag tag-yellow">Planned</span></td></tr>
+                        <tr><td>12</td><td>Documentation</td><td><span class="tag tag-yellow">Planned</span></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>ChainLens — Ethereum blockchain indexer with reorg-safe, crash-resumable ingestion</p>
+            <p style="margin-top: 8px;">Built in Rust • Results last updated: <span id="last-updated">2026-09-09</span></p>
+        </div>
+    </footer>
+</body>
+</html>
