@@ -1,5 +1,8 @@
 # ChainLens
 
+> **Status: Phase 2 complete.** The RPC client is implemented with retry, rate limiting,
+> and `eth_getBlockReceipts` capability detection. Phase 3 (domain model) is next.
+
 An Ethereum blockchain indexer written in Rust. It ingests blocks, transactions, receipts,
 and event logs from a JSON-RPC endpoint, decodes them, persists them to PostgreSQL, and
 serves them over a read API.
@@ -7,13 +10,6 @@ serves them over a read API.
 It is built around three properties that indexer implementations commonly skip: **correct
 handling of chain reorganizations**, **crash safety that is tested rather than assumed**,
 and **performance that is measured rather than claimed**.
-
----
-
-> **Status: pre-implementation.** The architecture is settled and is documented below. There
-> is no runnable code yet — Phase 1 (scaffolding) is next. Performance figures will appear in
-> this README only once they have been measured. See
-> [Project status](#project-status) for the phase-by-phase state.
 
 ---
 
@@ -190,9 +186,9 @@ sequential design was correct.
 
 | | Phase | State |
 | --- | --- | --- |
-| 1 | Foundation and scaffolding | next |
-| 2 | RPC client: retry, rate limiting, capability probe | planned |
-| 3 | Domain model, validation, ERC-20/721 decoding | planned |
+| 1 | Foundation and scaffolding | **complete** |
+| 2 | RPC client: retry, rate limiting, capability probe | **complete** |
+| 3 | Domain model, validation, ERC-20/721 decoding | next |
 | 4 | Schema and single-transaction commit | planned |
 | 5 | Sequential pipeline end to end (baseline) | planned |
 | 6 | Mock RPC harness and reorg handling | planned |
@@ -209,17 +205,22 @@ indexer that corrupts on reorg is a worse system than a sequential one that does
 
 ## Getting started
 
-Not yet runnable. This section will contain a verified quickstart once Phase 1 is complete —
-including a fresh-clone test, because a README that has never been followed from a clean
-checkout is a README that does not work.
-
-Intended shape:
+Phases 1 and 2 are complete. The process starts, connects to PostgreSQL, constructs the
+RPC client, probes for `eth_getBlockReceipts` support, and exits cleanly on Ctrl-C. There
+is no pipeline yet — the process idles after startup.
 
 ```bash
 cp .env.example .env          # add your RPC endpoint
 docker compose up -d          # PostgreSQL
-cargo run --bin chainlens     # indexer
-cargo run --bin api           # query API
+cargo run --bin chainlens     # starts, probes RPC, idles
+```
+
+To verify everything works:
+
+```bash
+cargo test --locked                              # 40 unit tests
+cargo clippy --locked --all-targets -- -D warnings
+cargo fmt --all -- --check
 ```
 
 ## Documentation
@@ -271,4 +272,4 @@ consumer of chain data.
 
 ## License
 
-MIT
+Licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for the full text.

@@ -1,0 +1,21 @@
+# Build artifacts
+/target
+
+# Local environment. Contains the RPC provider API key and the database
+# password. Only .env.example is committed.
+.env
+.env.local
+
+# Private planning document. notes/SPEC.md holds the week-by-week schedule and
+# rehearsed interview answers; publishing it would make this repository read as
+# a tutorial that was followed rather than as an engineering artifact.
+/notes/
+
+# Benchmark output is machine-specific and regenerable.
+/bench-results/
+
+# Editor and OS noise
+*.rs.bk
+.DS_Store
+.idea/
+.vscode/

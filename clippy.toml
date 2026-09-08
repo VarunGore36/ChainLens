@@ -1,0 +1,6 @@
+# `clippy::unwrap_used` and `clippy::expect_used` are denied crate-wide in
+# Cargo.toml so that every panic on an error path has to be argued for with an
+# explicit #[allow] and a comment. Tests are exempt: a panic in a test *is* a
+# failing test, which is the behaviour we want there.
+allow-unwrap-in-tests = true
+allow-expect-in-tests = true
