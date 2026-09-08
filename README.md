@@ -1,7 +1,7 @@
 # ChainLens
 
-> **Status: Phase 3 complete.** Domain model, validation, and ERC-20/721 decoding are
-> implemented. Phase 4 (schema and single-transaction commit) is next.
+> **Status: Phase 4 complete.** Schema, migrations, and single-transaction commit are
+> implemented. Phase 5 (sequential pipeline) is next.
 
 An Ethereum blockchain indexer written in Rust. It ingests blocks, transactions, receipts,
 and event logs from a JSON-RPC endpoint, decodes them, persists them to PostgreSQL, and
@@ -189,8 +189,8 @@ sequential design was correct.
 | 1 | Foundation and scaffolding | **complete** |
 | 2 | RPC client: retry, rate limiting, capability probe | **complete** |
 | 3 | Domain model, validation, ERC-20/721 decoding | **complete** |
-| 4 | Schema and single-transaction commit | next |
-| 5 | Sequential pipeline end to end (baseline) | planned |
+| 4 | Schema and single-transaction commit | **complete** |
+| 5 | Sequential pipeline end to end (baseline) | next |
 | 6 | Mock RPC harness and reorg handling | planned |
 | 7 | Crash recovery hardening | planned |
 | 8 | Observability | planned |

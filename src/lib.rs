@@ -4,4 +4,5 @@ pub mod decode;
 pub mod domain;
 pub mod rpc;
 pub mod shutdown;
+pub mod store;
 pub mod telemetry;

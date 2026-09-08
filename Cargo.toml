@@ -52,7 +52,7 @@ alloy-primitives = { version = "0.8", features = ["serde"] }
 [dependencies.sqlx]
 version = "0.8"
 default-features = false
-features = ["runtime-tokio", "tls-rustls", "postgres"]
+features = ["runtime-tokio", "tls-rustls", "postgres", "migrate"]
 
 [lints.rust]
 unsafe_code = "forbid"

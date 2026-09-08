@@ -5,6 +5,8 @@ use chainlens::rpc::EthClient;
 use chainlens::rpc::http::{HttpRpcClient, HttpRpcConfig};
 use chainlens::rpc::ratelimit::RateLimit;
 use chainlens::rpc::retry::RetryPolicy;
+use chainlens::store::BlockStore;
+use chainlens::store::postgres::PostgresStore;
 use chainlens::{config, db, shutdown, telemetry};
 
 #[tokio::main]
@@ -45,6 +47,10 @@ async fn main() -> anyhow::Result<()> {
     let server = db::server_version(&pool, &target).await?;
     tracing::info!(postgres = %server, "database ready");
 
+    let store = PostgresStore::new(pool.clone());
+    store.run_migrations().await.context("failed to run database migrations")?;
+    tracing::info!("migrations applied");
+
     let rpc_config = HttpRpcConfig {
         url: config.rpc_url.expose().to_string(),
         rate_limit: RateLimit::new(config.rpc_rate_limit),
@@ -70,7 +76,7 @@ async fn main() -> anyhow::Result<()> {
         "RPC client ready"
     );
 
-    tracing::info!("no pipeline yet; phase 3 idles until a shutdown signal arrives");
+    tracing::info!("no pipeline yet; phase 4 idles until a shutdown signal arrives");
     shutdown.cancelled().await;
 
     tracing::info!("closing the connection pool");

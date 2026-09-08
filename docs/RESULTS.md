@@ -228,3 +228,64 @@ These fixtures are reused as the benchmark corpus in Phase 11.
 - `cargo fmt --all -- --check` — clean
 - `cargo build --locked --release` — clean
 - `cargo bench --bench decode -- --quick` — all benchmarks pass
+
+---
+
+## Phase 4 — Storage layer and schema
+
+**Status:** Complete.
+
+### What was built
+
+| Component | File | Responsibility |
+|-----------|------|----------------|
+| Migration | `migrations/0001_initial.sql` | All tables: blocks, transactions, logs, token_transfers, address_transactions, indexer_state, reorgs |
+| Store trait | `src/store/mod.rs` | `BlockStore` trait with `commit_block`, `last_indexed_block`, `run_migrations` |
+| PostgreSQL store | `src/store/postgres.rs` | Single-transaction commit, ON CONFLICT DO NOTHING, cursor in same tx |
+
+### Schema design
+
+| Table | Primary key | Key decisions |
+|-------|-------------|---------------|
+| `blocks` | `number` (BIGINT) | Works because we hard-delete on reorg |
+| `transactions` | `hash` (BYTEA) | Same tx hash can appear in orphaned + canonical block, but never simultaneously |
+| `logs` | `(block_number, log_index)` | Contiguous indices validated at decode time |
+| `token_transfers` | `(block_number, log_index)` | FK to logs, cascade delete |
+| `address_transactions` | `(address, block_number, tx_index, direction)` | Denormalized for single-index-scan queries |
+| `indexer_state` | `id` (always 1) | Cursor in same tx as block data (invariant I2) |
+| `reorgs` | `id` (BIGSERIAL) | Audit trail that survives rollback |
+
+### Key design decisions
+
+1. **Single transaction commit.** Block header, transactions, logs, token transfers, address index, and the cursor all write in one PostgreSQL transaction. Crash recovery is a single SELECT.
+
+2. **ON CONFLICT DO NOTHING.** Natural primary keys make idempotent writes safe. Reprocessing a block produces identical state without errors.
+
+3. **`uint256` → `NUMERIC(78,0)`.** 2^256 ≈ 1.16 × 10^77, so 78 digits covers it. Sortable and arithmetic-capable in SQL.
+
+4. **Hard delete with cascade.** Orphaned data is deleted via `ON DELETE CASCADE` from blocks. The `reorgs` table preserves the audit trail.
+
+5. **Denormalized address index.** One row per (address, direction) turns the hot API endpoint into a single ordered index scan.
+
+6. **Migrations via `sqlx::migrate::Migrator`.** Forward-only, idempotent, runs at startup.
+
+### Test results
+
+```
+running 63 tests (56 unit + 7 integration)
+test result: ok. 63 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
+```
+
+### Verification
+
+- `cargo clippy --locked --all-targets -- -D warnings` — clean
+- `cargo fmt --all -- --check` — clean
+- `cargo build --locked --release` — clean
+
+### What is next
+
+Phase 5 — Sequential pipeline end to end:
+- Head watcher, scheduler, and committer wired into a single-threaded loop
+- Indexes from BACKFILL_FROM to chain head, then follows it
+- Cursor-driven startup, graceful shutdown
+- Sequential baseline throughput measurement
