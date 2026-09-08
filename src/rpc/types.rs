@@ -1,27 +1,5 @@
-//! Wire-format types for Ethereum JSON-RPC 2.0.
-//!
-//! These are the shapes that travel over HTTP — not the domain model. Phase 3
-//! introduces typed domain structs; this module is concerned solely with getting
-//! bytes off the wire without losing information.
-//!
-//! # Hex encoding
-//!
-//! Ethereum JSON-RPC uses two incompatible hex conventions:
-//!
-//! - **Hex quantity** — `0x1a` for 26, `0x0` for zero. No leading zeros.
-//!   Used for numbers: block numbers, gas, nonces, indices.
-//! - **Hex data** — `0x0000001a` for 26, padded to even length. Used for
-//!   fixed-size byte arrays: addresses (20 bytes), hashes (32 bytes).
-//!
-//! alloy-primitives handles hex data correctly for `Address`, `B256`, `U256`.
-//! The [`hex_quantity`] module handles hex quantities for `u64`.
-
 use alloy_primitives::{Address, B256, U256};
 use serde::{Deserialize, Serialize};
-
-// ---------------------------------------------------------------------------
-// JSON-RPC 2.0 framing
-// ---------------------------------------------------------------------------
 
 #[derive(Debug, Serialize)]
 pub(crate) struct JsonRpcRequest {
@@ -43,28 +21,14 @@ pub(crate) struct JsonRpcError {
     pub message: String,
 }
 
-// ---------------------------------------------------------------------------
-// Hex-quantity helpers (numbers, not byte arrays)
-// ---------------------------------------------------------------------------
-
 pub mod hex_quantity {
-    //! Deserializers for Ethereum hex-quantity encoding.
-    //!
-    //! `0x0` → 0, `0x1a` → 26, `0xff` → 255. Leading zeros are invalid per
-    //! the spec except for `0x0` itself. An empty string after the prefix is
-    //! treated as zero (some providers do this).
-
     use serde::{Deserialize, Deserializer};
 
-    /// Deserialize a hex-quantity string into `u64`.
     pub fn u64<'de, D: Deserializer<'de>>(deserializer: D) -> Result<u64, D::Error> {
         let s: String = Deserialize::deserialize(deserializer)?;
         parse(&s).map_err(serde::de::Error::custom)
     }
 
-    /// Deserialize an optional hex-quantity string into `Option<u64>`.
-    ///
-    /// A `null` JSON value becomes `None`. A present string is parsed as hex.
     pub fn optional_u64<'de, D: Deserializer<'de>>(
         deserializer: D,
     ) -> Result<Option<u64>, D::Error> {
@@ -116,21 +80,11 @@ pub mod hex_quantity {
 
         #[test]
         fn large_block_number() {
-            // Mainnet block 20_000_000 = 0x131_2D00
             assert_eq!(parse("0x1312D00").unwrap(), 20_000_000);
         }
     }
 }
 
-// ---------------------------------------------------------------------------
-// Ethereum RPC response types
-// ---------------------------------------------------------------------------
-
-/// A block as returned by `eth_getBlockByNumber` / `eth_getBlockByHash`.
-///
-/// Fields that Phase 2 does not use are omitted; they will be added in Phase 3
-/// when the domain model is finalized. Every field that *is* present is one the
-/// pipeline needs: block linkage, timing, and the transaction list.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct BlockResponse {
@@ -147,15 +101,11 @@ pub struct BlockResponse {
     pub gas_limit: u64,
     #[serde(default, deserialize_with = "hex_quantity::optional_u64")]
     pub base_fee_per_gas: Option<u64>,
-    /// `true` → full transaction objects; `false` → just hashes.
-    /// When `true`, each element is a [`TransactionResponse`].
-    /// When `false`, each element is a `B256` hash (not yet handled — Phase 3).
     pub transactions: Vec<TransactionResponse>,
     #[serde(deserialize_with = "hex_quantity::u64")]
     pub size: u64,
 }
 
-/// A transaction as returned inside a block with `full_transactions: true`.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TransactionResponse {
@@ -189,9 +139,6 @@ pub struct TransactionResponse {
     pub s: Option<U256>,
 }
 
-/// A transaction receipt.
-///
-/// Returned by `eth_getTransactionReceipt` and inside `eth_getBlockReceipts`.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ReceiptResponse {
@@ -210,7 +157,6 @@ pub struct ReceiptResponse {
     pub gas_used: u64,
     #[serde(default)]
     pub contract_address: Option<Address>,
-    /// 1 = success, 0 = failure. Post-Byzantium only; `None` for pre-Byzantium.
     #[serde(default, deserialize_with = "hex_quantity::optional_u64")]
     pub status: Option<u64>,
     pub logs: Vec<LogResponse>,
@@ -220,7 +166,6 @@ pub struct ReceiptResponse {
     pub effective_gas_price: Option<U256>,
 }
 
-/// An event log inside a receipt.
 #[derive(Debug, Clone, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LogResponse {

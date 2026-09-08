@@ -1,17 +1,3 @@
-//! Configuration, resolved once at startup from CLI flags and the environment.
-//!
-//! Two properties matter here beyond reading values.
-//!
-//! **Fail fast.** Everything wrong with the configuration is reported before any
-//! socket is opened, naming the setting that is wrong. A process that starts and
-//! then dies twenty seconds later inside a connection pool is much harder to
-//! diagnose than one that refuses to start.
-//!
-//! **Credentials cannot reach a log line.** [`RedactedUrl`] has no `Debug` or
-//! `Display` implementation capable of printing a secret, so the compiler rather
-//! than reviewer discipline is what prevents `%config.rpc_url` from publishing
-//! an API key. The unit tests at the bottom of this file assert it.
-
 use std::fmt;
 use std::str::FromStr;
 use std::time::Duration;
@@ -19,24 +5,10 @@ use std::time::Duration;
 use clap::{Parser, ValueEnum};
 use url::Url;
 
-/// A URL whose rendered form is limited to scheme, host and port.
-///
-/// Which component of a URL holds the secret depends on the provider: hosted RPC
-/// endpoints put the API key in the path (`/v2/<key>`), in the query string
-/// (`?apikey=`), or in userinfo, and a PostgreSQL URL carries the password in
-/// userinfo. Rather than guess, everything after the authority is elided.
-///
-/// What survives is what is actually useful when reading a log — is this mainnet
-/// or Sepolia, localhost or the shared database — and none of it can contain a
-/// credential.
 #[derive(Clone, PartialEq, Eq)]
 pub struct RedactedUrl(Url);
 
 impl RedactedUrl {
-    /// The complete URL, credentials included.
-    ///
-    /// Every call site is a place a secret could escape, so there are
-    /// deliberately very few of them.
     #[must_use]
     pub fn expose(&self) -> &Url {
         &self.0
@@ -47,8 +19,6 @@ impl RedactedUrl {
         self.0.scheme()
     }
 
-    /// True only for a non-empty host. `file:///tmp/x` parses successfully and
-    /// reports an *empty* host, which is not a thing you can connect to.
     #[must_use]
     pub fn has_host(&self) -> bool {
         self.0.host_str().is_some_and(|host| !host.is_empty())
@@ -58,9 +28,6 @@ impl RedactedUrl {
 impl fmt::Display for RedactedUrl {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         write!(f, "{}://", self.0.scheme())?;
-        // Not `unwrap`: a URL with no authority is rejected by
-        // `Config::validate`, but rendering must not panic even if that check is
-        // ever bypassed.
         let host = self.0.host_str().unwrap_or_default();
         f.write_str(if host.is_empty() { "<no-host>" } else { host })?;
         if let Some(port) = self.0.port() {
@@ -79,8 +46,6 @@ impl fmt::Display for RedactedUrl {
 
 impl fmt::Debug for RedactedUrl {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        // Delegating to Display is the entire point: `#[derive(Debug)]` on
-        // `Config` must not be able to print a credential.
         write!(f, "{self}")
     }
 }
@@ -93,24 +58,13 @@ impl FromStr for RedactedUrl {
     }
 }
 
-/// How log records are rendered.
-///
-/// An enum rather than a `--log-json` boolean on purpose. clap's `SetTrue` action
-/// treats the mere presence of an environment variable as true, so
-/// `CHAINLENS_LOG_JSON=false` would switch JSON logging *on* — a footgun that is
-/// invisible until someone reads their logs. An enum has no such failure mode and
-/// leaves room for a third format later.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, ValueEnum)]
 #[value(rename_all = "lowercase")]
 pub enum LogFormat {
-    /// One line per event, coloured when the terminal supports it. Single-line
-    /// on purpose: during a backfill a multi-line formatter is unreadable.
     Text,
-    /// One JSON object per line, for anything that ships logs elsewhere.
     Json,
 }
 
-/// Everything the process needs to know, resolved before it does anything.
 #[derive(Debug, Parser)]
 #[command(
     name = "chainlens",
@@ -118,33 +72,18 @@ pub enum LogFormat {
     about = "Ethereum indexer: reorg-safe, crash-resumable block ingestion"
 )]
 pub struct Config {
-    /// Ethereum JSON-RPC endpoint. Contains an API key; only scheme and host are
-    /// ever logged.
     #[arg(long, env = "CHAINLENS_RPC_URL")]
     pub rpc_url: RedactedUrl,
 
-    /// PostgreSQL connection string. Contains a password; only scheme, host and
-    /// port are ever logged.
-    ///
-    /// The environment variable is unprefixed because sqlx's own tooling —
-    /// `sqlx migrate`, and the compile-time-checked `query!` macros from Phase 4
-    /// onward — reads `DATABASE_URL` by that exact name. Two names for one value
-    /// is a worse problem than one name that breaks the prefix convention.
     #[arg(long, env = "DATABASE_URL")]
     pub database_url: RedactedUrl,
 
-    /// Maximum PostgreSQL connections in the pool.
-    ///
-    /// The committer is a single writer and needs exactly one. The remainder are
-    /// for the query API and for ad-hoc inspection.
     #[arg(long, env = "CHAINLENS_DB_MAX_CONNECTIONS", default_value_t = 5)]
     pub db_max_connections: u32,
 
-    /// Seconds to wait for PostgreSQL at startup before giving up.
     #[arg(long, env = "CHAINLENS_DB_CONNECT_TIMEOUT_SECS", default_value_t = 5)]
     pub db_connect_timeout_secs: u64,
 
-    /// Log output format.
     #[arg(
         long,
         env = "CHAINLENS_LOG_FORMAT",
@@ -153,28 +92,16 @@ pub struct Config {
     )]
     pub log_format: LogFormat,
 
-    /// Maximum RPC requests per second. Hosted providers meter compute units,
-    /// not raw requests, so this is a baseline — the provider's actual budget
-    /// is the ceiling that Phase 11 measures.
     #[arg(long, env = "CHAINLENS_RPC_RATE_LIMIT", default_value_t = 10)]
     pub rpc_rate_limit: u32,
 
-    /// Seconds to wait for an RPC response before timing out.
     #[arg(long, env = "CHAINLENS_RPC_TIMEOUT_SECS", default_value_t = 30)]
     pub rpc_timeout_secs: u64,
 
-    /// Maximum retries for transient RPC failures (429, 5xx, timeout).
-    /// Deterministic errors (malformed request, method not found) are never
-    /// retried.
     #[arg(long, env = "CHAINLENS_RPC_MAX_RETRIES", default_value_t = 3)]
     pub rpc_max_retries: u32,
 }
 
-/// Everything that can be wrong with a configuration that nonetheless parsed.
-///
-/// No variant carries any part of a URL except its scheme. Error messages get
-/// logged, so they have to be redaction-safe by construction rather than by
-/// remembering to be careful at each construction site.
 #[derive(Debug, thiserror::Error)]
 pub enum ConfigError {
     #[error("{setting} must be a URL with a host")]
@@ -196,9 +123,6 @@ pub enum ConfigError {
     },
 }
 
-/// Asserted rather than merely documented. A pool of zero deadlocks on first use,
-/// and a pool of several hundred is a way to make PostgreSQL slower rather than
-/// faster, since every connection is a backend process.
 const MAX_CONNECTIONS: (u64, u64) = (1, 200);
 const CONNECT_TIMEOUT_SECS: (u64, u64) = (1, 120);
 const RPC_RATE_LIMIT: (u64, u64) = (1, 1000);
@@ -206,25 +130,16 @@ const RPC_TIMEOUT_SECS: (u64, u64) = (1, 120);
 const RPC_MAX_RETRIES: (u64, u64) = (0, 10);
 
 impl Config {
-    /// Resolve configuration from process arguments and the environment.
-    ///
-    /// Call this *after* loading `.env`, or values in that file will not be
-    /// visible. clap prints usage and exits on a malformed argument, which is
-    /// correct for a CLI; semantic problems come back as [`ConfigError`].
     pub fn load() -> Result<Self, ConfigError> {
         let config = Self::parse();
         config.validate()?;
         Ok(config)
     }
 
-    /// The checks that clap's attributes cannot express.
     pub fn validate(&self) -> Result<(), ConfigError> {
         require_host("CHAINLENS_RPC_URL", &self.rpc_url)?;
         require_host("DATABASE_URL", &self.database_url)?;
 
-        // ws:// and wss:// are deliberately rejected. Subscription-based
-        // ingestion is on the cut list, and accepting a scheme the RPC client
-        // cannot speak would defer the failure to first use.
         require_scheme("CHAINLENS_RPC_URL", &self.rpc_url, &["http", "https"])?;
         require_scheme(
             "DATABASE_URL",
@@ -333,10 +248,6 @@ mod tests {
         }
     }
 
-    /// The acceptance criterion for Phase 1 that is worth a test rather than an
-    /// eyeball: no rendering of `Config` may contain a credential. If someone
-    /// later swaps `RedactedUrl` for a plain `Url`, or derives `Debug` on it,
-    /// this fails.
     #[test]
     fn no_rendering_of_config_contains_a_credential() {
         let config = valid();
@@ -440,9 +351,6 @@ mod tests {
         assert!(matches!(config.validate(), Err(ConfigError::Range { .. })));
     }
 
-    /// `localhost:5432` is the mistake people actually make, and it is worse than
-    /// a syntax error: `Url` parses it happily as scheme `localhost` with path
-    /// `5432`, so only the host check catches it.
     #[test]
     fn rejects_a_host_port_pair_mistaken_for_a_url() {
         let mut config = valid();
@@ -458,9 +366,6 @@ mod tests {
         assert!("not a url".parse::<RedactedUrl>().is_err());
     }
 
-    /// Guards the CLI definition itself. clap panics on a malformed derive — a
-    /// duplicate long flag, say — and without this the panic would only surface
-    /// when the binary is run rather than when the tests are.
     #[test]
     fn the_cli_definition_is_well_formed() {
         use clap::CommandFactory;

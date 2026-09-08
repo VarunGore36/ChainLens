@@ -118,3 +118,113 @@ Phase 3 — Domain model, validation, and ERC-20/721 decoding:
 - Pure function `raw_json → IndexedBlock` that validates as it decodes
 - ERC-20/721 `Transfer` and `Approval` event decoding from log topics
 - `criterion` micro-benchmarks for the decode path
+
+---
+
+## Phase 3 — Domain model, validation, and decoding
+
+**Status:** Complete.
+
+### What was built
+
+| Component | File | Responsibility |
+|-----------|------|----------------|
+| Domain types | `src/domain/mod.rs` | `IndexedBlock`, newtype wrappers (`ValidatedAddress`, `ValidatedHash`) |
+| Block | `src/domain/block.rs` | `Block` struct — header fields, primary key is `number` |
+| Transaction | `src/domain/transaction.rs` | `Transaction` struct — merged request + receipt data |
+| Log | `src/domain/log.rs` | `Log` struct — event data with separate topic columns |
+| Token transfer | `src/domain/token_transfer.rs` | `TokenTransfer`, `TokenStandard` enum, `TRANSFER_TOPIC` / `APPROVAL_TOPIC` constants |
+| Decode entry point | `src/decode/mod.rs` | `DecodeError` enum with typed validation errors |
+| Block decode | `src/decode/block.rs` | `decode_block()` — the pure function: RPC response → `IndexedBlock` |
+| ERC-20/721 decode | `src/decode/erc20.rs` | `decode_token_transfers()` — Transfer event classification |
+
+### Key design decisions
+
+1. **Domain types are separate from RPC types.** The RPC types (`src/rpc/types/`) are what
+   arrives over HTTP. The domain types (`src/domain/`) are what gets stored and reasoned about.
+   The boundary is the `decode` module, which converts while validating.
+
+2. **Merged transaction + receipt.** The RPC response splits transactions and receipts into
+   separate objects. The domain model merges them because every consumer needs both. Splitting
+   them would force every reader to do the join.
+
+3. **Pure decode function.** `decode_block()` is synchronous, side-effect-free, and takes
+   only its inputs. This makes it unit-testable against fixtures with no network or database,
+   micro-benchmarkable with `criterion`, and safe to run in parallel (Phase 9 worker pool).
+
+4. **ERC-20 vs ERC-721 classification by topic count.** Both standards share the same
+   `Transfer(address,address,uint256)` event signature. They are distinguished by topic count:
+   - 3 topics (topic0, from, to) → ERC-20: `value` in `data`
+   - 4 topics (topic0, from, to, tokenId) → ERC-721: `data` is empty
+
+5. **Newtype wrappers.** `ValidatedAddress` and `ValidatedHash` prevent accidental mixing of
+   addresses and hashes at the type level. They deref to the underlying alloy-primitives types,
+   so they are zero-cost.
+
+6. **Hardened input handling.** The decode functions never panic on malformed input. Missing
+   fields, wrong lengths, and inconsistencies all return typed `DecodeError` variants. This
+   is verified by a fuzz-ish test that decodes every fixture.
+
+### Validation checks
+
+- Receipt count matches transaction count
+- Receipt tx hashes match transaction hashes in order
+- Log indices are contiguous within the block
+- ERC-20 Transfer data is exactly 32 bytes
+- Transfer topics contain valid addresses
+
+### Test results
+
+```
+running 61 tests (54 unit + 7 integration)
+test result: ok. 61 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out
+```
+
+New tests added:
+- 5 block decode tests (empty block, EIP-1559 fields, receipt count mismatch, hash mismatch, log index gap)
+- 7 ERC-20/721 decode tests (ERC-20 transfer, ERC-721 transfer, skips non-Transfer, skips wrong topic count, rejects bad data length, multiple transfers, address round-trip)
+- 2 domain constant tests (Transfer topic matches keccak256, Approval topic matches keccak256)
+- 7 integration tests against fixture files (empty block, legacy tx, EIP-1559 + ERC-20, ERC-721, contract creation, multi-tx, all-fixtures-no-panic)
+
+### Benchmark results
+
+```
+decode_empty_block           time:   [28.3 ns]
+decode_legacy_tx             time:   [67.2 ns]
+decode_eip1559_with_erc20   time:   [150.6 ns]
+decode_erc721                time:   [125.6 ns]
+decode_contract_creation     time:   [65.1 ns]
+decode_multi_tx_with_logs   time:   [241.5 ns]
+```
+
+The decode path is pure CPU — no I/O, no allocations beyond the output vectors. At ~150 ns
+per block with ERC-20 transfers, the decode stage will not be the bottleneck even at 1000
+blocks/sec (which would use ~150 µs of CPU per second).
+
+### Test fixtures
+
+Six JSON fixtures in `benches/fixtures/`:
+
+| Fixture | Content |
+|---------|---------|
+| `empty_block` | Block with no transactions |
+| `legacy_tx` | Legacy (type 0) transaction |
+| `eip1559_erc20_transfer` | EIP-1559 transaction with ERC-20 Transfer event |
+| `erc721_transfer` | ERC-721 NFT Transfer event (4 topics) |
+| `contract_creation` | Contract creation (to = null) |
+| `multi_tx_with_logs` | 2 transactions, 2 logs (Transfer + Approval) |
+
+These fixtures are reused as the benchmark corpus in Phase 11.
+
+### Dependencies added
+
+| Crate | Purpose |
+|-------|---------|
+| `criterion` (dev) | Micro-benchmarks for the decode path |
+
+### Verification
+
+- `cargo clippy --locked --all-targets -- -D warnings` — clean
+- `cargo fmt --all -- --check` — clean
+- `cargo build --locked --release` — clean
+- `cargo bench --bench decode -- --quick` — all benchmarks pass

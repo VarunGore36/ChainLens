@@ -72,6 +72,13 @@ expect_used = "deny"
 cast_possible_truncation = "deny"
 cast_sign_loss = "deny"
 
+[dev-dependencies]
+criterion = { version = "0.5", features = ["html_reports"] }
+
+[[bench]]
+name = "decode"
+harness = false
+
 [profile.release]
 # Line tables only. No measurable runtime cost, but `perf` and `flamegraph` can
 # resolve symbols during Phase 11 instead of printing hex addresses.

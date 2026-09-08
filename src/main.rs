@@ -1,12 +1,3 @@
-//! The indexer binary.
-//!
-//! Phase 1 is the process skeleton: resolve configuration, install logging, reach
-//! PostgreSQL, then wait for a shutdown signal. There is no pipeline yet.
-//!
-//! Phase 2 adds the RPC client: it is constructed, its capabilities are probed,
-//! and it is held ready for the Phase 5 pipeline. The process idles until a
-//! shutdown signal arrives.
-
 use std::time::Duration;
 
 use anyhow::Context;
@@ -18,19 +9,12 @@ use chainlens::{config, db, shutdown, telemetry};
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    // Load .env before parsing, so its values are visible to clap's environment
-    // fallback. A missing file is normal — in a container the values arrive from
-    // the environment directly — but a malformed one is a configuration fault and
-    // is treated like any other.
     if let Err(error) = dotenvy::dotenv() {
         if !error.not_found() {
             return Err(error).context("could not read .env");
         }
     }
 
-    // Both of these run before the first log line exists, so their failures go to
-    // stderr through main's return value. That is the correct destination: a
-    // process that cannot read its own configuration has nowhere to log to.
     let config = config::Config::load().context("invalid configuration")?;
     telemetry::init(config.log_format).context("could not install the log subscriber")?;
 
@@ -47,9 +31,6 @@ async fn main() -> anyhow::Result<()> {
         "chainlens starting"
     );
 
-    // Registered before anything that can block, and selected against below, so
-    // Ctrl-C during a hanging connect returns immediately instead of waiting out
-    // the connect timeout.
     let shutdown = shutdown::on_signal();
 
     let pool = tokio::select! {
@@ -64,7 +45,6 @@ async fn main() -> anyhow::Result<()> {
     let server = db::server_version(&pool, &target).await?;
     tracing::info!(postgres = %server, "database ready");
 
-    // Phase 2: construct the RPC client and probe its capabilities.
     let rpc_config = HttpRpcConfig {
         url: config.rpc_url.expose().to_string(),
         rate_limit: RateLimit::new(config.rpc_rate_limit),
@@ -90,12 +70,9 @@ async fn main() -> anyhow::Result<()> {
         "RPC client ready"
     );
 
-    tracing::info!("no pipeline yet; phase 2 idles until a shutdown signal arrives");
+    tracing::info!("no pipeline yet; phase 3 idles until a shutdown signal arrives");
     shutdown.cancelled().await;
 
-    // `close` waits for checked-out connections to be returned rather than
-    // dropping them. From Phase 4 that is what gives the committer the chance to
-    // finish the transaction it is inside instead of having it rolled back.
     tracing::info!("closing the connection pool");
     pool.close().await;
     tracing::info!("shutdown complete");

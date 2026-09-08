@@ -1,26 +1,3 @@
-//! Hand-rolled JSON-RPC 2.0 transport over `reqwest`.
-//!
-//! One client, shared across tasks, reused for the process lifetime. The
-//! `reqwest::Client` internally pools HTTP connections with keep-alive, so
-//! a new TCP+TLS handshake happens only when a connection is actually
-//! dropped — not on every request.
-//!
-//! # Request lifecycle
-//!
-//! 1. [`RateLimit::wait`](super::ratelimit::RateLimit::wait) blocks until a
-//!    token is available.
-//! 2. The JSON-RPC request is POSTed.
-//! 3. If the response is a transient failure and retries remain, sleep for
-//!    [`RetryPolicy::delay_for_attempt`] and go to 1.
-//! 4. Return the result or the final error.
-//!
-//! # Capability probe
-//!
-//! On construction, the client calls `eth_getBlockReceipts` for the latest
-//! block. If the node supports it, all subsequent receipt fetches use that
-//! method (one round trip per block). Otherwise, the client falls back to
-//! per-transaction `eth_getTransactionReceipt`.
-
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
 
@@ -36,11 +13,6 @@ use super::types::{
 };
 use super::{BlockTag, EthClient, RpcError};
 
-// ---------------------------------------------------------------------------
-// Configuration
-// ---------------------------------------------------------------------------
-
-/// Configuration for the HTTP RPC client.
 #[derive(Debug, Clone)]
 pub struct HttpRpcConfig {
     pub url: String,
@@ -49,15 +21,6 @@ pub struct HttpRpcConfig {
     pub timeout: Duration,
 }
 
-// ---------------------------------------------------------------------------
-// Client
-// ---------------------------------------------------------------------------
-
-/// A production Ethereum JSON-RPC client.
-///
-/// Construct via [`HttpRpcClient::new`], which probes the node's capabilities
-/// before returning. Share across tasks with `.clone()` — the inner state is
-/// reference-counted.
 #[derive(Clone, Debug)]
 pub struct HttpRpcClient {
     client: Client,
@@ -69,13 +32,6 @@ pub struct HttpRpcClient {
 }
 
 impl HttpRpcClient {
-    /// Build a client and probe the node for `eth_getBlockReceipts` support.
-    ///
-    /// The probe fetches the latest block number, then tries
-    /// `eth_getBlockReceipts` for that block. A `-32601` (method not found)
-    /// error means the node does not support it. Any other error is logged as
-    /// a warning and treated as "unsupported" — the pipeline will still work,
-    /// just with per-transaction receipts.
     pub async fn new(config: HttpRpcConfig) -> Result<Self, RpcError> {
         let client = Client::builder()
             .timeout(config.timeout)
@@ -96,7 +52,6 @@ impl HttpRpcClient {
         Ok(rpc)
     }
 
-    /// Probe `eth_getBlockReceipts` support against the latest block.
     async fn probe_block_receipts(&mut self) {
         let block_number = match self.fetch_block_number(BlockTag::Latest).await {
             Ok(n) => n,
@@ -129,11 +84,6 @@ impl HttpRpcClient {
         }
     }
 
-    // -----------------------------------------------------------------------
-    // Low-level JSON-RPC transport
-    // -----------------------------------------------------------------------
-
-    /// Execute a JSON-RPC 2.0 call with retry and rate limiting.
     async fn call<T: DeserializeOwned>(
         &self,
         method: &str,
@@ -165,15 +115,11 @@ impl HttpRpcClient {
             }
         }
 
-        // All retries exhausted. last_error is Some because we only skip
-        // retry on non-retryable errors, and the loop condition ensures we
-        // only reach here after at least one retryable failure.
         Err(last_error.unwrap_or(RpcError::Connection(
             "retries exhausted with no error".to_owned(),
         )))
     }
 
-    /// Single JSON-RPC request, no retry.
     async fn execute_once<T: DeserializeOwned>(
         &self,
         method: &str,
@@ -223,10 +169,6 @@ impl HttpRpcClient {
             .ok_or_else(|| RpcError::Deserialize("JSON-RPC response missing result".to_owned()))
     }
 
-    // -----------------------------------------------------------------------
-    // Typed helpers (used by the EthClient impl and the probe)
-    // -----------------------------------------------------------------------
-
     async fn fetch_block_number(&self, tag: BlockTag) -> Result<u64, RpcError> {
         let block: Option<BlockResponse> = self
             .call(
@@ -250,10 +192,6 @@ impl HttpRpcClient {
         .await
     }
 }
-
-// ---------------------------------------------------------------------------
-// EthClient implementation
-// ---------------------------------------------------------------------------
 
 #[async_trait::async_trait]
 impl EthClient for HttpRpcClient {
@@ -282,8 +220,6 @@ impl EthClient for HttpRpcClient {
     }
 
     async fn get_block_number(&self, tag: BlockTag) -> Result<u64, RpcError> {
-        // eth_getBlockByNumber with false returns the block header;
-        // extract the number. Using the tag as the first param.
         let block: Option<BlockResponse> = self
             .call(
                 "eth_getBlockByNumber",
