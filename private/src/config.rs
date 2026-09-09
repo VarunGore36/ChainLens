@@ -109,6 +109,12 @@ pub struct Config {
 
     #[arg(long, env = "CHAINLENS_MAX_REORG_DEPTH", default_value_t = 128)]
     pub max_reorg_depth: u64,
+
+    #[arg(long, env = "CHAINLENS_WORKER_COUNT", default_value_t = 4)]
+    pub worker_count: usize,
+
+    #[arg(long, env = "CHAINLENS_FETCH_QUEUE_DEPTH", default_value_t = 32)]
+    pub fetch_queue_depth: usize,
 }
 
 #[derive(Debug, thiserror::Error)]
@@ -257,6 +263,8 @@ mod tests {
             backfill_from: 0,
             head_poll_secs: 4,
             max_reorg_depth: 128,
+            worker_count: 4,
+            fetch_queue_depth: 32,
         }
     }
 

@@ -1,6 +1,8 @@
 pub mod committer;
 pub mod head_watcher;
 pub mod scheduler;
+pub mod sequencer;
+pub mod worker;
 
 use thiserror::Error;
 

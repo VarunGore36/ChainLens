@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use anyhow::Context;
 use chainlens::metrics;
-use chainlens::pipeline::{committer, head_watcher, scheduler};
+use chainlens::pipeline::{committer, head_watcher, sequencer, worker};
 use chainlens::rpc::EthClient;
 use chainlens::rpc::http::{HttpRpcClient, HttpRpcConfig};
 use chainlens::rpc::ratelimit::RateLimit;
@@ -10,6 +10,7 @@ use chainlens::rpc::retry::RetryPolicy;
 use chainlens::store::BlockStore;
 use chainlens::store::postgres::PostgresStore;
 use chainlens::{config, db, shutdown, telemetry};
+use tokio::sync::mpsc;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -33,6 +34,8 @@ async fn main() -> anyhow::Result<()> {
         database_url = %config.database_url,
         backfill_from = config.backfill_from,
         head_poll_secs = config.head_poll_secs,
+        worker_count = config.worker_count,
+        fetch_queue_depth = config.fetch_queue_depth,
         "chainlens starting"
     );
 
@@ -118,12 +121,54 @@ async fn main() -> anyhow::Result<()> {
             "chain head"
         );
 
-        while let Some(next) = scheduler::next_block(cursor, &head, config.backfill_from) {
+        let start_block = cursor.max(config.backfill_from);
+        let blocks_to_fetch: Vec<u64> = (start_block..=head.latest)
+            .take(config.fetch_queue_depth * 2)
+            .collect();
+
+        if blocks_to_fetch.is_empty() {
+            tokio::select! {
+                () = tokio::time::sleep(poll_interval) => {}
+                () = shutdown.cancelled() => break,
+            }
+            continue;
+        }
+
+        let (fetch_tx, fetch_rx) = mpsc::channel(config.fetch_queue_depth);
+        let (worker_tx, worker_rx) = mpsc::channel(config.fetch_queue_depth);
+        let (seq_tx, mut seq_rx) = mpsc::channel(config.fetch_queue_depth);
+
+        let worker_handle = {
+            let client = rpc_client.clone();
+            let worker_count = config.worker_count;
+            tokio::spawn(async move {
+                worker::spawn_workers(client, worker_count, fetch_rx, worker_tx).await;
+            })
+        };
+
+        let expected = blocks_to_fetch[0];
+        let seq_handle = tokio::spawn(async move {
+            sequencer::run(worker_rx, seq_tx, expected).await;
+        });
+
+        for block_number in blocks_to_fetch {
+            if fetch_tx.send(block_number).await.is_err() {
+                break;
+            }
+        }
+
+        drop(fetch_tx);
+
+        while let Some(fetched) = seq_rx.recv().await {
             if shutdown.is_cancelled() {
                 break;
             }
 
-            match committer::commit_block(&rpc_client, &store, next, config.max_reorg_depth).await {
+            let block_number = fetched.number;
+
+            match committer::commit_block(&rpc_client, &store, block_number, config.max_reorg_depth)
+                .await
+            {
                 Ok(reorg_occurred) => {
                     if reorg_occurred {
                         tracing::info!("reorg handled, rewinding cursor");
@@ -138,7 +183,7 @@ async fn main() -> anyhow::Result<()> {
                     }
 
                     blocks_indexed += 1;
-                    cursor = next;
+                    cursor = block_number;
 
                     let lag = head.latest.saturating_sub(cursor);
                     metrics::set_indexing_lag(lag);
@@ -149,7 +194,7 @@ async fn main() -> anyhow::Result<()> {
                     }
                 }
                 Err(e) => {
-                    tracing::error!(error = %e, block = next, "failed to commit block");
+                    tracing::error!(error = %e, block = block_number, "failed to commit block");
                     tokio::select! {
                         () = tokio::time::sleep(Duration::from_secs(1)) => {}
                         () = shutdown.cancelled() => break,
@@ -157,6 +202,9 @@ async fn main() -> anyhow::Result<()> {
                 }
             }
         }
+
+        let _ = worker_handle.await;
+        let _ = seq_handle.await;
     }
 
     tracing::info!("closing the connection pool");
