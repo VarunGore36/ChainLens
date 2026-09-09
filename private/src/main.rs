@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use anyhow::Context;
+use chainlens::metrics;
 use chainlens::pipeline::{committer, head_watcher, scheduler};
 use chainlens::rpc::EthClient;
 use chainlens::rpc::http::{HttpRpcClient, HttpRpcConfig};
@@ -20,6 +21,11 @@ async fn main() -> anyhow::Result<()> {
 
     let config = config::Config::load().context("invalid configuration")?;
     telemetry::init(config.log_format).context("could not install the log subscriber")?;
+
+    let builder = metrics_exporter_prometheus::PrometheusBuilder::new();
+    builder
+        .install()
+        .context("failed to install Prometheus metrics exporter")?;
 
     tracing::info!(
         version = env!("CARGO_PKG_VERSION"),
@@ -134,8 +140,10 @@ async fn main() -> anyhow::Result<()> {
                     blocks_indexed += 1;
                     cursor = next;
 
+                    let lag = head.latest.saturating_sub(cursor);
+                    metrics::set_indexing_lag(lag);
+
                     if last_log.elapsed() >= Duration::from_secs(10) {
-                        let lag = head.latest.saturating_sub(cursor);
                         tracing::info!(cursor, lag, blocks_indexed, "indexing progress");
                         last_log = std::time::Instant::now();
                     }
