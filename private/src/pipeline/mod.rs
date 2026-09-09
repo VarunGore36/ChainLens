@@ -15,6 +15,9 @@ pub enum PipelineError {
     #[error("decode error: {0}")]
     Decode(#[from] crate::decode::DecodeError),
 
+    #[error("reorg error: {0}")]
+    Reorg(#[from] crate::reorg::ReorgError),
+
     #[error("pipeline cancelled")]
     Cancelled,
 }

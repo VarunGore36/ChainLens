@@ -117,8 +117,20 @@ async fn main() -> anyhow::Result<()> {
                 break;
             }
 
-            match committer::commit_block(&rpc_client, &store, next).await {
-                Ok(()) => {
+            match committer::commit_block(&rpc_client, &store, next, config.max_reorg_depth).await {
+                Ok(reorg_occurred) => {
+                    if reorg_occurred {
+                        tracing::info!("reorg handled, rewinding cursor");
+                        cursor = store
+                            .last_indexed_block()
+                            .await
+                            .ok()
+                            .flatten()
+                            .map(|(n, _)| n)
+                            .unwrap_or(config.backfill_from.saturating_sub(1));
+                        break;
+                    }
+
                     blocks_indexed += 1;
                     cursor = next;
 

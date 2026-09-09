@@ -62,6 +62,10 @@ impl BlockStore for PostgresStore {
             .await
             .map_err(StoreError::Migration)
     }
+
+    fn get_pool(&self) -> &sqlx::PgPool {
+        &self.pool
+    }
 }
 
 async fn insert_block(

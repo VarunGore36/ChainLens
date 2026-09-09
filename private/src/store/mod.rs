@@ -20,4 +20,6 @@ pub trait BlockStore: Send + Sync {
     async fn last_indexed_block(&self) -> Result<Option<(u64, Vec<u8>)>, StoreError>;
 
     async fn run_migrations(&self) -> Result<(), StoreError>;
+
+    fn get_pool(&self) -> &sqlx::PgPool;
 }
