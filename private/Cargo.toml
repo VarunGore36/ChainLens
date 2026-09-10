@@ -28,7 +28,7 @@ path = "src/bin/api.rs"
 
 [[bin]]
 name = "benchmark_harness"
-path = "benches/harness/main.rs"
+path = "src/bin/benchmark_harness/main.rs"
 
 # Phase 1 foundation plus Phase 2 RPC client. Each dependency earns its place
 # in the phase that first uses it.

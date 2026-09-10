@@ -45,6 +45,7 @@ async fn run_benchmark(
     _worker_count: usize,
 ) -> BenchmarkResult {
     store.run_migrations().await.unwrap();
+    clear_db(store.get_pool()).await;
 
     let start = Instant::now();
 

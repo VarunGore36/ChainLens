@@ -75,7 +75,7 @@ async fn insert_block(
     let b = &block.block;
     sqlx::query(
         "INSERT INTO blocks (number, hash, parent_hash, timestamp, miner, gas_used, gas_limit, base_fee, tx_count)
-         VALUES ($1, $2, $3, to_timestamp($4), $5, $6, $7, $8, $9)
+         VALUES ($1, $2, $3, to_timestamp($4), $5, $6, $7, $8::NUMERIC, $9)
          ON CONFLICT (number) DO NOTHING",
     )
     .bind(i64::try_from(b.number).unwrap_or(i64::MAX))
@@ -101,7 +101,7 @@ async fn insert_transactions(
     for t in &block.transactions {
         sqlx::query(
             "INSERT INTO transactions (hash, block_number, tx_index, from_addr, to_addr, value, nonce, tx_type, gas_limit, gas_price, max_fee_per_gas, max_priority_fee_per_gas, input, status, gas_used, effective_gas_price, contract_address)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17)
+             VALUES ($1, $2, $3, $4, $5, $6::NUMERIC, $7, $8, $9, $10::NUMERIC, $11::NUMERIC, $12::NUMERIC, $13, $14, $15, $16::NUMERIC, $17)
              ON CONFLICT (hash) DO NOTHING",
         )
         .bind(t.hash.as_slice())
@@ -163,7 +163,7 @@ async fn insert_token_transfers(
     for t in &block.token_transfers {
         sqlx::query(
             "INSERT INTO token_transfers (block_number, log_index, token_address, from_addr, to_addr, value, token_id, standard)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+             VALUES ($1, $2, $3, $4, $5, $6::NUMERIC, $7::NUMERIC, $8)
              ON CONFLICT (block_number, log_index) DO NOTHING",
         )
         .bind(i64::try_from(t.block_number).unwrap_or(i64::MAX))

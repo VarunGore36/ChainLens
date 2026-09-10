@@ -129,6 +129,7 @@ services:
       GF_SECURITY_ADMIN_PASSWORD: chainlens
     volumes:
       - chainlens-grafdata:/var/lib/grafana
+      - ./docker/grafana-dashboard.json:/var/lib/grafana/dashboards/chainlens.json:ro
 
 volumes:
   chainlens-pgdata:

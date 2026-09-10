@@ -1,4 +1,4 @@
-CREATE TABLE blocks (
+CREATE TABLE IF NOT EXISTS blocks (
     number         BIGINT PRIMARY KEY,
     hash           BYTEA NOT NULL UNIQUE,
     parent_hash    BYTEA NOT NULL,
@@ -10,7 +10,7 @@ CREATE TABLE blocks (
     tx_count       INT NOT NULL DEFAULT 0
 );
 
-CREATE TABLE transactions (
+CREATE TABLE IF NOT EXISTS transactions (
     hash                BYTEA PRIMARY KEY,
     block_number        BIGINT NOT NULL REFERENCES blocks(number) ON DELETE CASCADE,
     tx_index            INT NOT NULL,
@@ -30,9 +30,9 @@ CREATE TABLE transactions (
     contract_address    BYTEA
 );
 
-CREATE INDEX idx_transactions_block ON transactions(block_number);
+CREATE INDEX IF NOT EXISTS idx_transactions_block ON transactions(block_number);
 
-CREATE TABLE logs (
+CREATE TABLE IF NOT EXISTS logs (
     block_number  BIGINT NOT NULL REFERENCES blocks(number) ON DELETE CASCADE,
     log_index     INT NOT NULL,
     tx_hash       BYTEA NOT NULL,
@@ -45,10 +45,10 @@ CREATE TABLE logs (
     PRIMARY KEY (block_number, log_index)
 );
 
-CREATE INDEX idx_logs_tx_hash ON logs(tx_hash);
-CREATE INDEX idx_logs_address ON logs(address);
+CREATE INDEX IF NOT EXISTS idx_logs_tx_hash ON logs(tx_hash);
+CREATE INDEX IF NOT EXISTS idx_logs_address ON logs(address);
 
-CREATE TABLE token_transfers (
+CREATE TABLE IF NOT EXISTS token_transfers (
     block_number BIGINT NOT NULL,
     log_index    INT NOT NULL,
     token_address BYTEA NOT NULL,
@@ -61,11 +61,11 @@ CREATE TABLE token_transfers (
     FOREIGN KEY (block_number, log_index) REFERENCES logs(block_number, log_index) ON DELETE CASCADE
 );
 
-CREATE INDEX idx_token_transfers_token ON token_transfers(token_address);
-CREATE INDEX idx_token_transfers_from ON token_transfers(from_addr);
-CREATE INDEX idx_token_transfers_to ON token_transfers(to_addr);
+CREATE INDEX IF NOT EXISTS idx_token_transfers_token ON token_transfers(token_address);
+CREATE INDEX IF NOT EXISTS idx_token_transfers_from ON token_transfers(from_addr);
+CREATE INDEX IF NOT EXISTS idx_token_transfers_to ON token_transfers(to_addr);
 
-CREATE TABLE address_transactions (
+CREATE TABLE IF NOT EXISTS address_transactions (
     address      BYTEA NOT NULL,
     block_number BIGINT NOT NULL,
     tx_index     INT NOT NULL,
@@ -74,9 +74,9 @@ CREATE TABLE address_transactions (
     PRIMARY KEY (address, block_number, tx_index, direction)
 );
 
-CREATE INDEX idx_address_tx_hash ON address_transactions(tx_hash);
+CREATE INDEX IF NOT EXISTS idx_address_tx_hash ON address_transactions(tx_hash);
 
-CREATE TABLE indexer_state (
+CREATE TABLE IF NOT EXISTS indexer_state (
     id SMALLINT PRIMARY KEY DEFAULT 1 CHECK (id = 1),
     last_indexed_number BIGINT,
     last_indexed_hash   BYTEA,
@@ -85,9 +85,10 @@ CREATE TABLE indexer_state (
 );
 
 INSERT INTO indexer_state (id, last_indexed_number, last_indexed_hash, finalized_number)
-VALUES (1, NULL, NULL, NULL);
+VALUES (1, NULL, NULL, NULL)
+ON CONFLICT (id) DO NOTHING;
 
-CREATE TABLE reorgs (
+CREATE TABLE IF NOT EXISTS reorgs (
     id                    BIGSERIAL PRIMARY KEY,
     detected_at           TIMESTAMPTZ NOT NULL DEFAULT now(),
     common_ancestor_number BIGINT NOT NULL,
