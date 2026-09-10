@@ -61,7 +61,7 @@ impl MockRpcClient {
 fn make_genesis() -> MockBlock {
     MockBlock {
         number: 0,
-        hash: B256::with_last_byte(0),
+        hash: B256::ZERO,
         parent_hash: B256::ZERO,
         timestamp: 1000,
         transactions: vec![],
@@ -75,11 +75,20 @@ pub fn make_chain(length: u64) -> MockRpcClient {
     client.add_block(genesis);
 
     for i in 1..=length {
-        #[allow(clippy::cast_possible_truncation)]
+        let hash_bytes = {
+            let mut b = [0u8; 32];
+            b[24..32].copy_from_slice(&i.to_be_bytes());
+            B256::new(b)
+        };
+        let parent_bytes = {
+            let mut b = [0u8; 32];
+            b[24..32].copy_from_slice(&(i - 1).to_be_bytes());
+            B256::new(b)
+        };
         let block = MockBlock {
             number: i,
-            hash: B256::with_last_byte(i as u8),
-            parent_hash: B256::with_last_byte((i - 1) as u8),
+            hash: hash_bytes,
+            parent_hash: parent_bytes,
             timestamp: 1000 + i * 12,
             transactions: vec![make_tx(i, 0)],
             receipts: vec![make_receipt(i, 0)],

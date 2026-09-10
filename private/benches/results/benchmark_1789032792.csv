@@ -1,0 +1,8 @@
+name,blocks,elapsed_secs,blocks_per_sec,transactions,tx_per_sec
+sequential_1000,1000,2.552,391.8,1000,391.8
+concurrent_w1_500,500,1.319,379.1,500,379.1
+concurrent_w2_500,500,1.310,381.6,500,381.6
+concurrent_w4_500,500,1.328,376.4,500,376.4
+concurrent_w8_500,500,2.406,207.8,500,207.8
+concurrent_w16_500,500,8.293,60.3,500,60.3
+decode_only_5000,5000,0.003,1691764.6,5000,1691764.6
