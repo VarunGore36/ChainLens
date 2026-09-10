@@ -60,34 +60,41 @@ Cost scales linearly with transaction count and log count.
 
 ## Sequential Throughput (E1)
 
-**Environment:** Mock RPC, zero latency, single committer, PostgreSQL on localhost
+**Environment:** Mock RPC, zero latency, single committer, PostgreSQL 17 (docker-compose)
 
 | Blocks | Elapsed | blocks/sec | tx/sec |
 |--------|---------|------------|--------|
-| 1000 | ~2.1s | ~476 | ~476 |
-| 5000 | ~10.5s | ~476 | ~476 |
+| 1000 | ~2.6s | ~392 | ~392 |
 
-**Analysis:** Sequential throughput is bounded by the DB commit path, not decode. Each block writes header + transaction + cursor in one PostgreSQL transaction. At ~2ms per commit, the ceiling is ~500 blocks/sec for a single writer.
+**Analysis:** Sequential throughput is bounded by the DB commit path, not decode. Each block writes header + transaction + cursor in one PostgreSQL transaction. At ~2.5ms per commit, the ceiling is ~400 blocks/sec for a single writer.
+
+## Decode Throughput (E1)
+
+**Environment:** Mock RPC, zero latency, no DB writes (pure CPU)
+
+| Blocks | Elapsed | blocks/sec |
+|--------|---------|------------|
+| 5000 | ~3µs | ~1,700,000 |
+
+**Analysis:** Decode is negligible. At 1.7M blocks/sec, the decode stage will never be the bottleneck.
 
 ---
 
-## Concurrent Scaling (E2)
+## Concurrent Scaling (E1)
 
-**Environment:** Mock RPC, zero latency, N workers, single committer
+**Environment:** Mock RPC, zero latency, N workers, single committer, PostgreSQL 17
 
 | Workers | blocks/sec | Speedup vs 1 worker |
 |---------|------------|---------------------|
-| 1 | ~476 | 1.0x |
-| 2 | ~476 | 1.0x |
-| 4 | ~476 | 1.0x |
-| 8 | ~476 | 1.0x |
-| 16 | ~476 | 1.0x |
+| 1 | 379 | 1.0x |
+| 2 | 382 | 1.0x |
+| 4 | 376 | 1.0x |
+| 8 | 208 | 0.55x |
+| 16 | 60 | 0.16x |
 
-**Analysis:** With zero-latency mock RPC, adding workers provides no speedup. This is expected — the bottleneck is the single committer, not the fetch/decode workers. The committer handles ~500 blocks/sec regardless of worker count.
+**Analysis:** With zero-latency mock RPC, adding workers provides no speedup. This is expected — the bottleneck is the single committer, not the fetch/decode workers. With 8+ workers, throughput actually decreases due to contention on the shared receiver lock and sequencer overhead.
 
-This confirms the architecture hypothesis: **serializing the commit stage costs approximately zero throughput** because the bottleneck is RPC round-trips (which are zero in E1).
-
-In E2 (with synthetic latency), workers would show scaling because the bottleneck shifts to RPC round-trips.
+This confirms the architecture hypothesis: **serializing the commit stage costs approximately zero throughput** because the bottleneck is RPC round-trips (which are zero in E1). In E2 (with synthetic latency), workers would show scaling because the bottleneck shifts to RPC round-trips.
 
 ---
 
