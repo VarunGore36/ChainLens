@@ -51,9 +51,10 @@ jobs:
       - name: Generate results.json
         if: always()
         run: |
-          TOTAL=$(cargo test --locked 2>&1 | grep -oP 'running \K\d+' | head -1 || echo "0")
-          PASSED=$(cargo test --locked 2>&1 | grep -oP 'test result:.*\K\d+ passed' | head -1 | grep -oP '\d+' || echo "0")
-          FAILED=$(cargo test --locked 2>&1 | grep -oP '\d+ failed' | head -1 | grep -oP '\d+' || echo "0")
+          TEST_OUTPUT=$(cargo test --locked 2>&1 || true)
+          TOTAL=$(echo "$TEST_OUTPUT" | grep -oP 'running \K\d+' | head -1 || echo "0")
+          PASSED=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= passed)' | head -1 || echo "0")
+          FAILED=$(echo "$TEST_OUTPUT" | grep -oP '\d+(?= failed)' | head -1 || echo "0")
           COMMIT=$(git rev-parse --short HEAD)
           TIMESTAMP=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
           cat > website/results.json <<EOF
