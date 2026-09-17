@@ -508,15 +508,14 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "BUG: leaks credentials in query string — run with cargo test -- --ignored"]
     fn password_in_query_string_not_redacted() {
         let url: RedactedUrl = "postgres://user@host/db?password=supersecret"
             .parse()
             .unwrap();
         let display = url.to_string();
         assert!(
-            display.contains("supersecret"),
-            "BUG: password in query string is NOT redacted by Display — leaks to logs"
+            !display.contains("supersecret"),
+            "SECURITY BUG: password in query string leaked to logs: {display}"
         );
     }
 

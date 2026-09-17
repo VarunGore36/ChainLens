@@ -154,8 +154,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "BUG: find_ancestor compares chain tip hash, not per-block hash"]
-    fn find_ancestor_compares_wrong_hash() {
+    fn find_ancestor_uses_per_block_hash() {
         let rt = tokio::runtime::Runtime::new().unwrap();
         rt.block_on(async {
             let store = MockStore {
@@ -164,8 +163,8 @@ mod tests {
             let client = crate::test_helpers::mock_rpc::MockRpcClient::new(false);
             let result = find_ancestor(&client, &store, 50, 10).await;
             assert!(
-                result.is_err(),
-                "BUG: always compares against chain tip hash (0xAA), not block 50's stored hash"
+                result.is_ok(),
+                "BUG: find_ancestor compares chain tip hash, not per-block stored hash"
             );
         });
     }

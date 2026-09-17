@@ -590,8 +590,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "BUG: receipt ordering not verified — receipts could be for wrong tx"]
-    fn mismatched_receipt_order_accepted_if_hashes_match() {
+    fn mismatched_receipt_order_rejected() {
         let mut block = minimal_block();
         let hash_a = B256::with_last_byte(0xAA);
         let hash_b = B256::with_last_byte(0xBB);
@@ -663,8 +662,8 @@ mod tests {
         };
         let result = decode_block(&block, &[receipt_b, receipt_a]);
         assert!(
-            result.is_ok(),
-            "BUG: receipts in wrong order still pass if hashes match at each position"
+            result.is_err(),
+            "BUG: receipts in wrong order accepted — tx_index not validated"
         );
     }
 
@@ -737,5 +736,83 @@ mod tests {
         let receipt = minimal_receipt(tx_hash);
         let result = decode_block(&block, &[receipt]).unwrap();
         assert_eq!(result.transactions[0].input.len(), 10000);
+    }
+
+    #[test]
+    fn invalid_tx_type_999_becomes_zero() {
+        let mut block = minimal_block();
+        let tx_hash = B256::with_last_byte(0xAA);
+        block.transactions.push(TransactionResponse {
+            hash: tx_hash,
+            transaction_index: 0,
+            from: Address::ZERO,
+            to: Some(Address::ZERO),
+            value: U256::ZERO,
+            nonce: 0,
+            gas: 21000,
+            gas_price: Some(U256::from(1u64)),
+            input: Bytes::new(),
+            transaction_type: Some(999),
+            max_fee_per_gas: None,
+            max_priority_fee_per_gas: None,
+            chain_id: Some(U256::from(1u64)),
+            v: Some(U256::from(27u64)),
+            r: Some(U256::ZERO),
+            s: Some(U256::ZERO),
+        });
+        let receipt = minimal_receipt(tx_hash);
+        let result = decode_block(&block, &[receipt]).unwrap();
+        assert_ne!(
+            result.transactions[0].tx_type, 0,
+            "BUG: tx_type=999 silently becomes 0 (Legacy) instead of erroring"
+        );
+    }
+
+    #[test]
+    fn invalid_status_999_becomes_zero() {
+        let mut block = minimal_block();
+        let tx_hash = B256::with_last_byte(0xAA);
+        block.transactions.push(TransactionResponse {
+            hash: tx_hash,
+            transaction_index: 0,
+            from: Address::ZERO,
+            to: Some(Address::ZERO),
+            value: U256::ZERO,
+            nonce: 0,
+            gas: 21000,
+            gas_price: Some(U256::from(1u64)),
+            input: Bytes::new(),
+            transaction_type: Some(0),
+            max_fee_per_gas: None,
+            max_priority_fee_per_gas: None,
+            chain_id: Some(U256::from(1u64)),
+            v: Some(U256::from(27u64)),
+            r: Some(U256::ZERO),
+            s: Some(U256::ZERO),
+        });
+        let mut receipt = minimal_receipt(tx_hash);
+        receipt.status = Some(999);
+        let result = decode_block(&block, &[receipt]).unwrap();
+        assert_ne!(
+            result.transactions[0].status,
+            Some(0),
+            "BUG: status=999 silently becomes 0 (failure) instead of erroring"
+        );
+    }
+
+    #[test]
+    fn timestamp_zero_accepted() {
+        let mut block = minimal_block();
+        block.timestamp = 0;
+        let result = decode_block(&block, &[]).unwrap();
+        assert_eq!(result.block.timestamp, 0);
+    }
+
+    #[test]
+    fn miner_zero_address_accepted() {
+        let mut block = minimal_block();
+        block.miner = Address::ZERO;
+        let result = decode_block(&block, &[]).unwrap();
+        assert_eq!(result.block.miner, Address::ZERO);
     }
 }
