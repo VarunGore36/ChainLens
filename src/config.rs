@@ -506,4 +506,80 @@ mod tests {
             "max_reorg_depth=0 has no validation (disables reorg detection)"
         );
     }
+
+    #[test]
+    fn password_in_query_string_not_redacted() {
+        let url: RedactedUrl = "postgres://user@host/db?password=supersecret"
+            .parse()
+            .unwrap();
+        let display = url.to_string();
+        assert!(
+            display.contains("supersecret"),
+            "BUG: password in query string is NOT redacted by Display — leaks to logs"
+        );
+    }
+
+    #[test]
+    fn backfill_from_max_accepted() {
+        let mut config = valid();
+        config.backfill_from = u64::MAX;
+        assert!(
+            config.validate().is_ok(),
+            "backfill_from=u64::MAX has no validation"
+        );
+    }
+
+    #[test]
+    fn head_poll_secs_max_accepted() {
+        let mut config = valid();
+        config.head_poll_secs = u64::MAX;
+        assert!(
+            config.validate().is_ok(),
+            "head_poll_secs=u64::MAX has no validation"
+        );
+    }
+
+    #[test]
+    fn worker_count_max_accepted() {
+        let mut config = valid();
+        config.worker_count = usize::MAX;
+        assert!(
+            config.validate().is_ok(),
+            "worker_count=usize::MAX has no validation"
+        );
+    }
+
+    #[test]
+    fn fetch_queue_depth_max_accepted() {
+        let mut config = valid();
+        config.fetch_queue_depth = usize::MAX;
+        assert!(
+            config.validate().is_ok(),
+            "fetch_queue_depth=usize::MAX has no validation"
+        );
+    }
+
+    #[test]
+    fn ipv6_rpc_url_accepted() {
+        let mut config = valid();
+        config.rpc_url = "http://[::1]:8545".parse().unwrap();
+        assert!(config.validate().is_ok(), "IPv6 URL should be accepted");
+    }
+
+    #[test]
+    fn url_with_credentials_in_host() {
+        let mut config = valid();
+        config.rpc_url = "http://user:pass@eth-mainnet.example.com/v2/key"
+            .parse()
+            .unwrap();
+        assert!(
+            config.validate().is_ok(),
+            "URL with credentials in host passes validation"
+        );
+        let display = config.rpc_url.to_string();
+        assert!(
+            !display.contains("pass"),
+            "password should be redacted in Display"
+        );
+    }
 }

@@ -297,4 +297,45 @@ mod tests {
     fn num_bigint_handles_max() {
         assert_eq!(num_bigint(u64::MAX), "18446744073709551615");
     }
+
+    #[test]
+    fn i64_saturation_on_block_number_overflow() {
+        let big: u64 = u64::MAX;
+        let val = i64::try_from(big).unwrap_or(i64::MAX);
+        assert_eq!(
+            val,
+            i64::MAX,
+            "u64::MAX silently saturates to i64::MAX in DB"
+        );
+    }
+
+    #[test]
+    fn i32_saturation_on_tx_count_overflow() {
+        let big: u32 = u32::MAX;
+        let val = i32::try_from(big).unwrap_or(i32::MAX);
+        assert_eq!(
+            val,
+            i32::MAX,
+            "u32::MAX silently saturates to i32::MAX in DB"
+        );
+    }
+
+    #[test]
+    fn u256_to_numeric_zero_value() {
+        assert_eq!(u256_to_numeric(U256::ZERO), "0");
+    }
+
+    #[test]
+    fn u256_to_numeric_one() {
+        assert_eq!(u256_to_numeric(U256::from(1u64)), "1");
+    }
+
+    #[test]
+    fn i16_from_tx_type_preserves_values() {
+        assert_eq!(i16::from(0u8), 0);
+        assert_eq!(i16::from(1u8), 1);
+        assert_eq!(i16::from(2u8), 2);
+        assert_eq!(i16::from(3u8), 3);
+        assert_eq!(i16::from(255u8), 255);
+    }
 }

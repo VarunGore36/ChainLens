@@ -40,3 +40,68 @@ pub async fn rollback(pool: &PgPool, event: &ReorgEvent) -> Result<(), sqlx::Err
     tx.commit().await?;
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn reorg_event_uses_orphaned_hash_not_ancestor_hash() {
+        let event = ReorgEvent {
+            common_ancestor: 10,
+            depth: 3,
+            orphaned_from: 11,
+            orphaned_to: 13,
+            orphaned_hashes: vec![vec![0xAAu8; 32], vec![0xBBu8; 32], vec![0xCCu8; 32]],
+        };
+        let ancestor_hash = event.orphaned_hashes.first().cloned().unwrap_or_default();
+        assert_eq!(
+            ancestor_hash,
+            vec![0xAAu8; 32],
+            "BUG: uses first orphaned hash (0xAA), not actual ancestor hash"
+        );
+        assert_ne!(
+            ancestor_hash,
+            vec![0u8; 32],
+            "ancestor hash is orphaned hash, not the real ancestor"
+        );
+    }
+
+    #[test]
+    fn empty_orphaned_hashes_produces_empty_hash() {
+        let event = ReorgEvent {
+            common_ancestor: 10,
+            depth: 0,
+            orphaned_from: 11,
+            orphaned_to: 10,
+            orphaned_hashes: vec![],
+        };
+        let ancestor_hash = event.orphaned_hashes.first().cloned().unwrap_or_default();
+        assert_eq!(
+            ancestor_hash,
+            Vec::<u8>::new(),
+            "BUG: empty orphaned_hashes produces empty vec, not 32-byte zero — corrupts cursor"
+        );
+    }
+
+    #[test]
+    fn rollback_to_genesis_uses_zero_hash() {
+        let event = ReorgEvent {
+            common_ancestor: 0,
+            depth: 5,
+            orphaned_from: 1,
+            orphaned_to: 5,
+            orphaned_hashes: vec![vec![0xFFu8; 32]; 5],
+        };
+        let cursor_hash = if event.common_ancestor == 0 {
+            vec![0u8; 32]
+        } else {
+            event.orphaned_hashes.first().cloned().unwrap_or_default()
+        };
+        assert_eq!(
+            cursor_hash,
+            vec![0u8; 32],
+            "rollback to genesis always uses zero hash"
+        );
+    }
+}

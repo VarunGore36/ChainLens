@@ -486,4 +486,106 @@ mod tests {
         assert!(tx.gas_price.is_none());
         assert_eq!(tx.status, Some(1));
     }
+
+    #[test]
+    fn log_index_must_start_at_zero() {
+        let block = minimal_block();
+        let raw_logs = vec![LogResponse {
+            address: Address::ZERO,
+            topics: vec![],
+            data: Bytes::new(),
+            block_number: 1,
+            transaction_hash: B256::ZERO,
+            transaction_index: 0,
+            block_hash: B256::ZERO,
+            log_index: 1,
+            removed: false,
+        }];
+        let result = decode_logs(&block, &raw_logs);
+        assert!(
+            matches!(
+                result,
+                Err(DecodeError::LogIndexGap {
+                    actual: 1,
+                    expected: 0,
+                    ..
+                })
+            ),
+            "log_index=1 rejected when expecting 0 — arguably too strict"
+        );
+    }
+
+    #[test]
+    fn gas_used_greater_than_gas_limit_is_accepted() {
+        let mut block = minimal_block();
+        block.gas_used = 999_999_999;
+        block.gas_limit = 21000;
+        let result = decode_block(&block, &[]).unwrap();
+        assert!(
+            result.block.gas_used > result.block.gas_limit,
+            "no validation: gas_used > gas_limit silently accepted"
+        );
+    }
+
+    #[test]
+    fn self_referencing_block_hash_accepted() {
+        let mut block = minimal_block();
+        block.parent_hash = block.hash;
+        let result = decode_block(&block, &[]).unwrap();
+        assert_eq!(
+            result.block.hash, result.block.parent_hash,
+            "hash == parent_hash is accepted (no validation)"
+        );
+    }
+
+    #[test]
+    fn duplicate_transaction_hashes_in_block() {
+        let mut block = minimal_block();
+        let tx_hash = B256::with_last_byte(0xaa);
+        for _ in 0..2 {
+            block.transactions.push(TransactionResponse {
+                hash: tx_hash,
+                transaction_index: 0,
+                from: Address::ZERO,
+                to: Some(Address::ZERO),
+                value: U256::ZERO,
+                nonce: 0,
+                gas: 21000,
+                gas_price: Some(U256::from(1u64)),
+                input: Bytes::new(),
+                transaction_type: Some(0),
+                max_fee_per_gas: None,
+                max_priority_fee_per_gas: None,
+                chain_id: Some(U256::from(1u64)),
+                v: Some(U256::from(27u64)),
+                r: Some(U256::ZERO),
+                s: Some(U256::ZERO),
+            });
+        }
+        let receipts: Vec<_> = block
+            .transactions
+            .iter()
+            .map(|tx| ReceiptResponse {
+                transaction_hash: tx.hash,
+                transaction_index: 0,
+                block_hash: B256::with_last_byte(1),
+                block_number: 1,
+                from: Address::ZERO,
+                to: Some(Address::ZERO),
+                cumulative_gas_used: 21000,
+                gas_used: 21000,
+                contract_address: None,
+                status: Some(1),
+                logs: vec![],
+                transaction_type: Some(0),
+                effective_gas_price: Some(U256::from(7u64)),
+            })
+            .collect();
+        let result = decode_block(&block, &receipts).unwrap();
+        assert_eq!(
+            result.transactions.len(),
+            2,
+            "duplicate tx hashes are accepted — no dedup"
+        );
+    }
 }
