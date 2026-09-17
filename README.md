@@ -6,6 +6,9 @@
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Tests](https://img.shields.io/badge/Tests-93_passing-22c55e)]()
 [![Clippy](https://img.shields.io/badge/Clippy-clean-22c55e)]()
+[![Website](https://img.shields.io/badge/Website-live-627eea)](https://chain-lens-chi.vercel.app/)
+
+**Live site:** [chain-lens-chi.vercel.app](https://chain-lens-chi.vercel.app/)
 
 ChainLens follows the Ethereum chain head while backfilling historical blocks. It stores headers, transactions, receipts, and event logs — with ERC-20/721 `Transfer` events decoded into typed tables. Reorganizations are handled atomically: identify common ancestor, rollback orphaned blocks, re-index canonical branch. Crash at any point and it resumes without gaps or duplicates.
 
