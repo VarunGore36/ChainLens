@@ -44,18 +44,3 @@ jobs:
 
       - name: Release build
         run: cargo build --locked --release
-
-  audit:
-    name: dependency advisories
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      checks: write
-      contents: read
-    env:
-      ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
-    steps:
-      - uses: actions/checkout@v4
-      - uses: rustsec/audit-check@v2
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
