@@ -1,8 +1,0 @@
-# Stable options only. Nightly-only settings such as `imports_granularity` and
-# `group_imports` are deliberately omitted so that `cargo fmt --check` produces
-# the same verdict on every machine and in CI.
-edition = "2024"
-max_width = 100
-newline_style = "Unix"
-use_field_init_shorthand = true
-use_try_shorthand = true

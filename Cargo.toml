@@ -2,8 +2,6 @@
 name = "chainlens"
 version = "0.1.0"
 edition = "2024"
-# Machine-checked rather than a README claim: edition 2024 needs 1.85, and
-# `cargo build` should say so rather than emitting a wall of syntax errors.
 rust-version = "1.85"
 license = "Apache-2.0"
 description = "An Ethereum indexer with reorg-safe, crash-resumable ingestion"
@@ -11,9 +9,6 @@ repository = "https://github.com/VarunGore36/ChainLens"
 readme = "README.md"
 publish = false
 
-# One crate, a library plus binaries. The lib target is not decoration: without
-# it nothing under tests/ can import this code, and the Phase 10 query API
-# binary would have to duplicate config, telemetry, and store setup.
 [lib]
 name = "chainlens"
 path = "src/lib.rs"
@@ -30,8 +25,6 @@ path = "src/bin/api.rs"
 name = "benchmark_harness"
 path = "src/bin/benchmark_harness/main.rs"
 
-# Phase 1 foundation plus Phase 2 RPC client. Each dependency earns its place
-# in the phase that first uses it.
 [dependencies]
 anyhow = "1"
 async-trait = "0.1"
@@ -53,15 +46,8 @@ tower-http = { version = "0.6", features = ["cors"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "fmt", "json"] }
 url = "2"
-
-# alloy-primitives for Address, B256, U256 — the building blocks that every
-# Ethereum crate agrees on. The serde feature is what lets JSON-RPC responses
-# deserialize directly into these types without an intermediate step.
 alloy-primitives = { version = "0.8", features = ["serde"] }
 
-# default-features = false drops "any", "macros", "migrate", and "json", none of
-# which Phase 1 uses. rustls rather than native-tls: no OpenSSL headers needed,
-# so the CI image and a fresh clone build identically.
 [dependencies.sqlx]
 version = "0.8"
 default-features = false
@@ -72,16 +58,9 @@ unsafe_code = "forbid"
 missing_debug_implementations = "warn"
 
 [lints.clippy]
-# priority = -1 lets the specific lints below override the group.
 all = { level = "deny", priority = -1 }
-# Phase 7 (crash recovery) rests on there being no hidden panics in the commit
-# path. Denying these now means every panic has to be argued for with a local
-# #[allow] and a comment, which is far cheaper than auditing for them later.
-# Tests are exempted in clippy.toml.
 unwrap_used = "deny"
 expect_used = "deny"
-# Silent numeric truncation is a real hazard here: block numbers, gas values and
-# log indices cross u64/i64/u32 boundaries constantly on the way to PostgreSQL.
 cast_possible_truncation = "deny"
 cast_sign_loss = "deny"
 
@@ -93,7 +72,4 @@ name = "decode"
 harness = false
 
 [profile.release]
-# Line tables only. No measurable runtime cost, but `perf` and `flamegraph` can
-# resolve symbols during Phase 11 instead of printing hex addresses.
 debug = 1
-

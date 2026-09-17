@@ -1,16 +1,7 @@
-# Build artifacts
 /target
-private/target
-
-# Local environment. Contains the RPC provider API key and the database
-# password. Only .env.example is committed.
 .env
 .env.local
-
-# Benchmark output is machine-specific and regenerable.
 /bench-results/
-
-# Editor and OS noise
 *.rs.bk
 .DS_Store
 .idea/
