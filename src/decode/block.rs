@@ -588,4 +588,154 @@ mod tests {
             "duplicate tx hashes are accepted — no dedup"
         );
     }
+
+    #[test]
+    #[ignore = "BUG: receipt ordering not verified — receipts could be for wrong tx"]
+    fn mismatched_receipt_order_accepted_if_hashes_match() {
+        let mut block = minimal_block();
+        let hash_a = B256::with_last_byte(0xAA);
+        let hash_b = B256::with_last_byte(0xBB);
+        block.transactions.push(TransactionResponse {
+            hash: hash_a,
+            transaction_index: 0,
+            from: Address::ZERO,
+            to: Some(Address::ZERO),
+            value: U256::ZERO,
+            nonce: 0,
+            gas: 21000,
+            gas_price: Some(U256::from(1u64)),
+            input: Bytes::new(),
+            transaction_type: Some(0),
+            max_fee_per_gas: None,
+            max_priority_fee_per_gas: None,
+            chain_id: Some(U256::from(1u64)),
+            v: Some(U256::from(27u64)),
+            r: Some(U256::ZERO),
+            s: Some(U256::ZERO),
+        });
+        block.transactions.push(TransactionResponse {
+            hash: hash_b,
+            transaction_index: 1,
+            from: Address::ZERO,
+            to: Some(Address::ZERO),
+            value: U256::ZERO,
+            nonce: 1,
+            gas: 21000,
+            gas_price: Some(U256::from(1u64)),
+            input: Bytes::new(),
+            transaction_type: Some(0),
+            max_fee_per_gas: None,
+            max_priority_fee_per_gas: None,
+            chain_id: Some(U256::from(1u64)),
+            v: Some(U256::from(27u64)),
+            r: Some(U256::ZERO),
+            s: Some(U256::ZERO),
+        });
+        let receipt_a = ReceiptResponse {
+            transaction_hash: hash_a,
+            transaction_index: 1,
+            block_hash: B256::with_last_byte(1),
+            block_number: 1,
+            from: Address::ZERO,
+            to: Some(Address::ZERO),
+            cumulative_gas_used: 21000,
+            gas_used: 21000,
+            contract_address: None,
+            status: Some(1),
+            logs: vec![],
+            transaction_type: Some(0),
+            effective_gas_price: Some(U256::from(7u64)),
+        };
+        let receipt_b = ReceiptResponse {
+            transaction_hash: hash_b,
+            transaction_index: 0,
+            block_hash: B256::with_last_byte(1),
+            block_number: 1,
+            from: Address::ZERO,
+            to: Some(Address::ZERO),
+            cumulative_gas_used: 21000,
+            gas_used: 21000,
+            contract_address: None,
+            status: Some(1),
+            logs: vec![],
+            transaction_type: Some(0),
+            effective_gas_price: Some(U256::from(7u64)),
+        };
+        let result = decode_block(&block, &[receipt_b, receipt_a]);
+        assert!(
+            result.is_ok(),
+            "BUG: receipts in wrong order still pass if hashes match at each position"
+        );
+    }
+
+    #[test]
+    fn block_number_zero_accepted() {
+        let mut block = minimal_block();
+        block.number = 0;
+        block.parent_hash = B256::ZERO;
+        let result = decode_block(&block, &[]).unwrap();
+        assert_eq!(result.block.number, 0);
+    }
+
+    #[test]
+    fn max_u64_block_number() {
+        let mut block = minimal_block();
+        block.number = u64::MAX;
+        let result = decode_block(&block, &[]).unwrap();
+        assert_eq!(result.block.number, u64::MAX);
+    }
+
+    #[test]
+    fn empty_transaction_input() {
+        let mut block = minimal_block();
+        let tx_hash = B256::with_last_byte(0xAA);
+        block.transactions.push(TransactionResponse {
+            hash: tx_hash,
+            transaction_index: 0,
+            from: Address::ZERO,
+            to: Some(Address::ZERO),
+            value: U256::ZERO,
+            nonce: 0,
+            gas: 21000,
+            gas_price: Some(U256::from(1u64)),
+            input: Bytes::new(),
+            transaction_type: Some(0),
+            max_fee_per_gas: None,
+            max_priority_fee_per_gas: None,
+            chain_id: Some(U256::from(1u64)),
+            v: Some(U256::from(27u64)),
+            r: Some(U256::ZERO),
+            s: Some(U256::ZERO),
+        });
+        let receipt = minimal_receipt(tx_hash);
+        let result = decode_block(&block, &[receipt]).unwrap();
+        assert!(result.transactions[0].input.is_empty());
+    }
+
+    #[test]
+    fn large_transaction_input() {
+        let mut block = minimal_block();
+        let tx_hash = B256::with_last_byte(0xAA);
+        block.transactions.push(TransactionResponse {
+            hash: tx_hash,
+            transaction_index: 0,
+            from: Address::ZERO,
+            to: Some(Address::ZERO),
+            value: U256::ZERO,
+            nonce: 0,
+            gas: 21000,
+            gas_price: Some(U256::from(1u64)),
+            input: Bytes::from(vec![0xABu8; 10000]),
+            transaction_type: Some(0),
+            max_fee_per_gas: None,
+            max_priority_fee_per_gas: None,
+            chain_id: Some(U256::from(1u64)),
+            v: Some(U256::from(27u64)),
+            r: Some(U256::ZERO),
+            s: Some(U256::ZERO),
+        });
+        let receipt = minimal_receipt(tx_hash);
+        let result = decode_block(&block, &[receipt]).unwrap();
+        assert_eq!(result.transactions[0].input.len(), 10000);
+    }
 }

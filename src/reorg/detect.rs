@@ -152,4 +152,54 @@ mod tests {
             panic!("no pool in mock")
         }
     }
+
+    #[test]
+    #[ignore = "BUG: find_ancestor compares chain tip hash, not per-block hash"]
+    fn find_ancestor_compares_wrong_hash() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(async {
+            let store = MockStore {
+                hash: vec![0xAAu8; 32],
+            };
+            let client = crate::test_helpers::mock_rpc::MockRpcClient::new(false);
+            let result = find_ancestor(&client, &store, 50, 10).await;
+            assert!(
+                result.is_err(),
+                "BUG: always compares against chain tip hash (0xAA), not block 50's stored hash"
+            );
+        });
+    }
+
+    #[test]
+    fn max_depth_zero_errors_immediately() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(async {
+            let store = MockStore {
+                hash: vec![0xAAu8; 32],
+            };
+            let client = crate::test_helpers::mock_rpc::MockRpcClient::new(false);
+            let result = find_ancestor(&client, &store, 100, 0).await;
+            assert!(result.is_err(), "max_depth=0 should error after one check");
+        });
+    }
+
+    #[test]
+    fn incoming_number_equals_1_skips_detection() {
+        let rt = tokio::runtime::Runtime::new().unwrap();
+        rt.block_on(async {
+            let store = MockStore {
+                hash: vec![0xFFu8; 32],
+            };
+            let result = detect(
+                &crate::test_helpers::mock_rpc::MockRpcClient::new(false),
+                &store,
+                1,
+                B256::ZERO,
+                128,
+            )
+            .await
+            .unwrap();
+            assert_eq!(result, None, "block 1 always returns None");
+        });
+    }
 }
