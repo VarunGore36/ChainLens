@@ -343,7 +343,10 @@ mod tests {
         };
         let result = decode_token_transfers(&[log]);
         assert!(
-            matches!(result, Err(DecodeError::InvalidErc20DataLength { length: 0, .. })),
+            matches!(
+                result,
+                Err(DecodeError::InvalidErc20DataLength { length: 0, .. })
+            ),
             "3 topics + empty data falls into ERC-20 path, rejects empty data"
         );
     }

@@ -441,7 +441,14 @@ mod tests {
         }];
         let result = decode_logs(&block, &raw_logs);
         assert!(
-            matches!(result, Err(DecodeError::LogIndexGap { actual: 5, expected: 0, .. })),
+            matches!(
+                result,
+                Err(DecodeError::LogIndexGap {
+                    actual: 5,
+                    expected: 0,
+                    ..
+                })
+            ),
             "should reject log_index=5 when expecting 0"
         );
     }
