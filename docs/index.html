@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChainLens — Ethereum Blockchain Indexer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <canvas id="bg"></canvas>
+
+    <nav id="nav">
+        <div class="nav-inner">
+            <a href="#" class="logo">
+                <div class="logo-mark">CL</div>
+                <span>ChainLens</span>
+            </a>
+            <ul class="nav-links">
+                <li><a href="#benchmarks">Benchmarks</a></li>
+                <li><a href="#architecture">Architecture</a></li>
+                <li><a href="#features">Features</a></li>
+                <li><a href="#tests">Tests</a></li>
+                <li><a href="#api">API</a></li>
+            </ul>
+            <a href="https://github.com/VarunGore36/ChainLens" class="gh-btn" target="_blank">
+                <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+                GitHub
+            </a>
+        </div>
+    </nav>
+
+    <section class="hero" id="hero">
+        <div class="hero-glow"></div>
+        <div class="hero-content">
+            <div class="hero-badge">
+                <div class="dot"></div>
+                <span>All 12 phases complete</span>
+            </div>
+            <h1><span class="gradient">Ethereum Blockchain<br>Indexer</span></h1>
+            <p class="hero-sub">Reorg-safe, crash-resumable block ingestion. 392 blocks/sec pipeline. 1.7M blocks/sec decode. Kill it anytime — resumes without gaps.</p>
+            <div class="hero-btns">
+                <a href="https://github.com/VarunGore36/ChainLens" class="btn btn-primary" target="_blank">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+                    View on GitHub
+                </a>
+                <a href="#benchmarks" class="btn btn-ghost">See Benchmarks ↓</a>
+            </div>
+        </div>
+        <div class="scroll-hint"><div class="arrow"></div></div>
+    </section>
+
+    <div class="container">
+        <div class="stats" id="stats">
+            <div class="stat reveal">
+                <div class="stat-icon">⚡</div>
+                <div class="stat-num" data-target="392">0</div>
+                <div class="stat-label">Blocks/sec</div>
+                <div class="stat-sub">Pipeline throughput</div>
+            </div>
+            <div class="stat reveal d1">
+                <div class="stat-icon">🔬</div>
+                <div class="stat-num" data-target="1700000">0</div>
+                <div class="stat-label">Decode b/s</div>
+                <div class="stat-sub">Pure CPU, no I/O</div>
+            </div>
+            <div class="stat reveal d2">
+                <div class="stat-icon">✅</div>
+                <div class="stat-num" data-target="93">0</div>
+                <div class="stat-label">Tests</div>
+                <div class="stat-sub">0 failures, 0 warnings</div>
+            </div>
+            <div class="stat reveal d3">
+                <div class="stat-icon">⏱️</div>
+                <div class="stat-num" data-target="150">0</div>
+                <div class="stat-label">ns/block</div>
+                <div class="stat-sub">ERC-20 decode</div>
+            </div>
+        </div>
+    </div>
+
+    <section class="section" id="benchmarks">
+        <div class="container">
+            <div class="section-head reveal">
+                <div class="label">Performance</div>
+                <h2>Benchmarks</h2>
+                <p>Real numbers from PostgreSQL 17 with mock RPC fixtures.</p>
+            </div>
+            <div class="bench-grid">
+                <div class="bench-card reveal">
+                    <h3><div class="icon">⚡</div> Pipeline Throughput</h3>
+                    <div class="bars">
+                        <div class="bar"><div class="bar-label">1 worker</div><div class="bar-track"><div class="bar-fill blue" data-width="100">392 b/s</div></div></div>
+                        <div class="bar"><div class="bar-label">2 workers</div><div class="bar-track"><div class="bar-fill blue" data-width="97">382 b/s</div></div></div>
+                        <div class="bar"><div class="bar-label">4 workers</div><div class="bar-track"><div class="bar-fill blue" data-width="96">376 b/s</div></div></div>
+                        <div class="bar"><div class="bar-label">8 workers</div><div class="bar-track"><div class="bar-fill amber" data-width="53">208 b/s</div></div></div>
+                        <div class="bar"><div class="bar-label">16 workers</div><div class="bar-track"><div class="bar-fill amber" data-width="15">60 b/s</div></div></div>
+                    </div>
+                    <p class="bench-note">Bottleneck is DB commit path (~2.5ms/block), not fetch workers.</p>
+                </div>
+                <div class="bench-card reveal d1">
+                    <h3><div class="icon">🔬</div> Decode Latency</h3>
+                    <div class="bars">
+                        <div class="bar"><div class="bar-label">empty block</div><div class="bar-track"><div class="bar-fill green" data-width="12">28ns</div></div></div>
+                        <div class="bar"><div class="bar-label">legacy tx</div><div class="bar-track"><div class="bar-fill green" data-width="28">67ns</div></div></div>
+                        <div class="bar"><div class="bar-label">contract create</div><div class="bar-track"><div class="bar-fill green" data-width="27">65ns</div></div></div>
+                        <div class="bar"><div class="bar-label">ERC-721</div><div class="bar-track"><div class="bar-fill green" data-width="52">126ns</div></div></div>
+                        <div class="bar"><div class="bar-label">EIP-1559+ERC20</div><div class="bar-track"><div class="bar-fill green" data-width="62">151ns</div></div></div>
+                        <div class="bar"><div class="bar-label">multi-tx+logs</div><div class="bar-track"><div class="bar-fill green" data-width="100">242ns</div></div></div>
+                    </div>
+                    <p class="bench-note">Pure CPU — no I/O, no allocations beyond output vectors.</p>
+                </div>
+            </div>
+            <div class="big-stat reveal">
+                <div class="num" data-target="1700000">0</div>
+                <div class="desc">blocks/sec decode — Mock RPC, zero latency, no DB writes</div>
+                <div class="metrics">
+                    <div class="metric"><div class="val">4,250x</div><div class="lbl">faster than pipeline</div></div>
+                    <div class="metric"><div class="val">~0%</div><div class="lbl">CPU at 100 b/s</div></div>
+                    <div class="metric"><div class="val">O(n)</div><div class="lbl">scales linearly</div></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section" id="architecture">
+        <div class="container">
+            <div class="section-head reveal">
+                <div class="label">Design</div>
+                <h2>Pipeline Architecture</h2>
+                <p>Bounded channels, single-writer committer, structural backpressure.</p>
+            </div>
+            <div class="arch-wrapper reveal">
+                <div class="arch">
+                    <div class="arch-node"><div class="arch-glow"></div><div class="ico">👁️</div><div class="title">Head Watcher</div><div class="desc">Polls chain head</div></div>
+                    <div class="arch-arrow"><div class="dot"></div>→</div>
+                    <div class="arch-node"><div class="arch-glow"></div><div class="ico">📋</div><div class="title">Scheduler</div><div class="desc">Dispatches blocks</div></div>
+                    <div class="arch-arrow"><div class="dot"></div>→</div>
+                    <div class="arch-node"><div class="arch-glow"></div><div class="ico">⚙️</div><div class="title">Workers (N)</div><div class="desc">Fetch + Decode</div></div>
+                    <div class="arch-arrow"><div class="dot"></div>→</div>
+                    <div class="arch-node"><div class="arch-glow"></div><div class="ico">📦</div><div class="title">Sequencer</div><div class="desc">Reorder ascending</div></div>
+                    <div class="arch-arrow"><div class="dot"></div>→</div>
+                    <div class="arch-node"><div class="arch-glow"></div><div class="ico">💾</div><div class="title">Committer</div><div class="desc">Single PG tx/block</div></div>
+                    <div class="arch-arrow"><div class="dot"></div>→</div>
+                    <div class="arch-node"><div class="arch-glow"></div><div class="ico">🐘</div><div class="title">PostgreSQL</div><div class="desc">Durable storage</div></div>
+                </div>
+                <div class="arch-reorg">
+                    <div class="arch-node"><div class="arch-glow"></div><div class="ico">🔄</div><div class="title">Reorg Handler</div><div class="desc">Rollback + re-index</div></div>
+                </div>
+            </div>
+            <div class="invariants reveal">
+                <div class="inv"><div class="check">✓</div><div class="text"><strong>Cursor in same transaction as data</strong><span>Crash recovery = single SELECT</span></div></div>
+                <div class="inv"><div class="check">✓</div><div class="text"><strong>Natural primary keys</strong><span>Idempotent writes, no sequences</span></div></div>
+                <div class="inv"><div class="check">✓</div><div class="text"><strong>Hard-delete on reorg</strong><span>Clean read paths, audit table preserves history</span></div></div>
+                <div class="inv"><div class="check">✓</div><div class="text"><strong>Bounded channels throughout</strong><span>Structural backpressure, no OOM</span></div></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section" id="features">
+        <div class="container">
+            <div class="section-head reveal">
+                <div class="label">Capabilities</div>
+                <h2>Key Features</h2>
+                <p>Production-grade Ethereum indexer built in Rust.</p>
+            </div>
+            <div class="feat-grid">
+                <div class="feat reveal"><div class="ico">⟠</div><h3>ERC-20 & ERC-721</h3><p>Transfer events decoded into typed tables. Token transfers indexed for fast queries.</p></div>
+                <div class="feat reveal d1"><div class="ico">🔄</div><h3>Reorg Handling</h3><p>Detects chain reorganizations, identifies common ancestor, rolls back atomically.</p></div>
+                <div class="feat reveal d2"><div class="ico">📡</div><h3>Prometheus Metrics</h3><p>Blocks/sec, tx/sec, RPC latency, DB commit time, lag, reorg count at /metrics.</p></div>
+                <div class="feat reveal"><div class="ico">🌐</div><h3>Query API</h3><p>Axum REST API with keyset pagination. Block, transaction, address, events.</p></div>
+                <div class="feat reveal d1"><div class="ico">🛡️</div><h3>Security</h3><p>Read-only API, localhost binding, RedactedUrl prevents credential leaks.</p></div>
+                <div class="feat reveal d2"><div class="ico">🐳</div><h3>Docker Ready</h3><p>PostgreSQL + Prometheus + Grafana. Tuned for benchmarking with data checksums.</p></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section" id="tests">
+        <div class="container">
+            <div class="section-head reveal">
+                <div class="label">Quality</div>
+                <h2>Test Results</h2>
+                <p>93 tests, 0 failures, 0 clippy warnings.</p>
+            </div>
+            <div class="test-card reveal">
+                <div class="test-header">
+                    <h3><div class="live-dot"></div> All Tests Passing</h3>
+                    <div class="test-counts">
+                        <div class="tc"><div class="val green">93</div><div class="lbl">Total</div></div>
+                        <div class="tc"><div class="val dim">0</div><div class="lbl">Failures</div></div>
+                        <div class="tc"><div class="val dim">0</div><div class="lbl">Warnings</div></div>
+                    </div>
+                </div>
+                <div class="test-grid">
+                    <div class="test-mod"><span class="name">config</span><span class="cnt">18</span></div>
+                    <div class="test-mod"><span class="name">decode/block</span><span class="cnt">11</span></div>
+                    <div class="test-mod"><span class="name">decode/erc20</span><span class="cnt">14</span></div>
+                    <div class="test-mod"><span class="name">rpc/http</span><span class="cnt">4</span></div>
+                    <div class="test-mod"><span class="name">rpc/retry</span><span class="cnt">9</span></div>
+                    <div class="test-mod"><span class="name">rpc/ratelimit</span><span class="cnt">4</span></div>
+                    <div class="test-mod"><span class="name">rpc/types</span><span class="cnt">6</span></div>
+                    <div class="test-mod"><span class="name">store</span><span class="cnt">7</span></div>
+                    <div class="test-mod"><span class="name">domain</span><span class="cnt">2</span></div>
+                    <div class="test-mod"><span class="name">telemetry</span><span class="cnt">2</span></div>
+                    <div class="test-mod"><span class="name">shutdown</span><span class="cnt">1</span></div>
+                    <div class="test-mod"><span class="name">db</span><span class="cnt">1</span></div>
+                    <div class="test-mod"><span class="name">integration</span><span class="cnt">7</span></div>
+                    <div class="test-mod"><span class="name">crash recovery</span><span class="cnt">5*</span></div>
+                </div>
+            </div>
+            <div class="section-head reveal" style="margin-top:80px">
+                <div class="label">Status</div>
+                <h2>Project Phases</h2>
+                <p>All 12 development phases complete.</p>
+            </div>
+            <div class="phase-grid reveal">
+                <div class="phase"><div class="check">✓</div><div class="text"><span class="num">1</span>Foundation</div></div>
+                <div class="phase"><div class="check">✓</div><div class="text"><span class="num">2</span>RPC Client</div></div>
+                <div class="phase"><div class="check">✓</div><div class="text"><span class="num">3</span>Domain Model</div></div>
+                <div class="phase"><div class="check">✓</div><div class="text"><span class="num">4</span>Schema</div></div>
+                <div class="phase"><div class="check">✓</div><div class="text"><span class="num">5</span>Pipeline</div></div>
+                <div class="phase"><div class="check">✓</div><div class="text"><span class="num">6</span>Reorg Handling</div></div>
+                <div class="phase"><div class="check">✓</div><div class="text"><span class="num">7</span>Crash Recovery</div></div>
+                <div class="phase"><div class="check">✓</div><div class="text"><span class="num">8</span>Observability</div></div>
+                <div class="phase"><div class="check">✓</div><div class="text"><span class="num">9</span>Concurrency</div></div>
+                <div class="phase"><div class="check">✓</div><div class="text"><span class="num">10</span>Query API</div></div>
+                <div class="phase"><div class="check">✓</div><div class="text"><span class="num">11</span>Benchmarking</div></div>
+                <div class="phase"><div class="check">✓</div><div class="text"><span class="num">12</span>Documentation</div></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="section" id="api">
+        <div class="container">
+            <div class="section-head reveal">
+                <div class="label">Interface</div>
+                <h2>Query API</h2>
+                <p>Axum-based REST API with keyset pagination.</p>
+            </div>
+            <div class="api-wrap reveal">
+                <table class="api-table">
+                    <thead><tr><th>Endpoint</th><th>Description</th></tr></thead>
+                    <tbody>
+                        <tr><td class="ep">GET /block/{number_or_hash}</td><td>Block by number or hash</td></tr>
+                        <tr><td class="ep">GET /transaction/{hash}</td><td>Transaction by hash</td></tr>
+                        <tr><td class="ep">GET /address/{address}/transactions</td><td>Address history with keyset pagination</td></tr>
+                        <tr><td class="ep">GET /contract/{address}/events</td><td>Contract events filtered by topic</td></tr>
+                        <tr><td class="ep">GET /health</td><td>Health check</td></tr>
+                        <tr><td class="ep">GET /status</td><td>Cursor position, finalized height, lag</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="section-head reveal" style="margin-top:80px">
+                <div class="label">Setup</div>
+                <h2>Quick Start</h2>
+                <p>Get running in 3 commands.</p>
+            </div>
+            <div class="code-wrap reveal">
+                <button class="copy-btn" id="copyBtn">Copy</button>
+                <pre class="code" id="code"><span class="c"># Clone and configure</span>
+<span class="k">git clone</span> https://github.com/VarunGore36/ChainLens.git
+<span class="k">cd</span> ChainLens
+<span class="k">cp</span> .env.example .env  <span class="c"># add your RPC endpoint</span>
+
+<span class="c"># Start PostgreSQL</span>
+<span class="k">docker compose up -d</span>
+
+<span class="c"># Run the indexer</span>
+<span class="k">cargo run --bin chainlens</span>
+
+<span class="c"># Run the API (separate terminal)</span>
+<span class="k">cargo run --bin api</span>  <span class="c"># http://127.0.0.1:8080</span></pre>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>ChainLens — Built with Rust, PostgreSQL, and Ethereum.</p>
+            <div class="links">
+                <a href="https://github.com/VarunGore36/ChainLens" target="_blank">GitHub</a>
+                <a href="https://github.com/VarunGore36/ChainLens/tree/main/docs" target="_blank">Docs</a>
+                <a href="https://github.com/VarunGore36/ChainLens/blob/main/LICENSE" target="_blank">Apache 2.0</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="app.js"></script>
+</body>
+</html>
