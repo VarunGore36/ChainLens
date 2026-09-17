@@ -55,25 +55,25 @@
         <div class="stats" id="stats">
             <div class="stat reveal">
                 <div class="stat-icon">⚡</div>
-                <div class="stat-num" data-target="392">0</div>
+                <div class="stat-num" data-stat="pipeline_bps" data-target="392">0</div>
                 <div class="stat-label">Blocks/sec</div>
                 <div class="stat-sub">Pipeline throughput</div>
             </div>
             <div class="stat reveal d1">
                 <div class="stat-icon">🔬</div>
-                <div class="stat-num" data-target="1700000">0</div>
+                <div class="stat-num" data-stat="decode_bps" data-target="1700000">0</div>
                 <div class="stat-label">Decode b/s</div>
                 <div class="stat-sub">Pure CPU, no I/O</div>
             </div>
             <div class="stat reveal d2">
                 <div class="stat-icon">✅</div>
-                <div class="stat-num" data-target="93">0</div>
+                <div class="stat-num" data-stat="tests_total" data-target="93">0</div>
                 <div class="stat-label">Tests</div>
-                <div class="stat-sub">0 failures, 0 warnings</div>
+                <div class="stat-sub"><span data-test-fail>0</span> failures, <span data-test-warn>0</span> warnings</div>
             </div>
             <div class="stat reveal d3">
                 <div class="stat-icon">⏱️</div>
-                <div class="stat-num" data-target="150">0</div>
+                <div class="stat-num" data-stat="decode_ns" data-target="150">0</div>
                 <div class="stat-label">ns/block</div>
                 <div class="stat-sub">ERC-20 decode</div>
             </div>
@@ -187,9 +187,9 @@
                 <div class="test-header">
                     <h3><div class="live-dot"></div> All Tests Passing</h3>
                     <div class="test-counts">
-                        <div class="tc"><div class="val green">93</div><div class="lbl">Total</div></div>
-                        <div class="tc"><div class="val dim">0</div><div class="lbl">Failures</div></div>
-                        <div class="tc"><div class="val dim">0</div><div class="lbl">Warnings</div></div>
+                        <div class="tc"><div class="val green" data-test-total>93</div><div class="lbl">Total</div></div>
+                        <div class="tc"><div class="val dim" data-test-fail>0</div><div class="lbl">Failures</div></div>
+                        <div class="tc"><div class="val dim" data-test-warn>0</div><div class="lbl">Warnings</div></div>
                     </div>
                 </div>
                 <div class="test-grid">
