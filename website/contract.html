@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contract Intelligence — ChainLens</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .search-bar{display:flex;gap:12px;margin-bottom:32px}
+        .search-bar input{flex:1;padding:14px 20px;background:var(--bg2);border:1px solid var(--glass-b);border-radius:var(--rs);color:var(--text);font-size:15px;font-family:'JetBrains Mono',monospace;outline:none;transition:border-color .2s}
+        .search-bar input:focus{border-color:var(--accent)}
+        .search-bar button{padding:14px 28px;background:linear-gradient(135deg,var(--accent),var(--accent-d));color:#fff;border:none;border-radius:var(--rs);font-weight:600;cursor:pointer;transition:all .3s}
+        .search-bar button:hover{transform:translateY(-2px);box-shadow:0 8px 30px var(--glow)}
+        .result{display:none}.result.visible{display:block}
+        .intel-card{background:var(--bg2);border:1px solid var(--glass-b);border-radius:var(--r);padding:32px;margin-bottom:24px}
+        .intel-card h3{font-size:18px;margin-bottom:20px;display:flex;align-items:center;gap:10px}
+        .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+        .stat-item{padding:16px;background:var(--bg3);border-radius:var(--rs);text-align:center}
+        .stat-item .num{font-size:28px;font-weight:800;color:var(--accent-l);font-variant-numeric:tabular-nums}
+        .stat-item .lbl{font-size:11px;color:var(--text-dd);text-transform:uppercase;letter-spacing:1px;margin-top:4px}
+        .badge-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px}
+        .badge{padding:8px 16px;border-radius:20px;font-size:12px;font-weight:600}
+        .badge.token{background:rgba(98,126,234,.15);color:var(--accent-l);border:1px solid rgba(98,126,234,.3)}
+        .badge.nft{background:rgba(168,85,247,.15);color:#c084fc;border:1px solid rgba(168,85,247,.3)}
+        .badge.contract{background:rgba(34,197,94,.15);color:var(--green);border:1px solid rgba(34,197,94,.3)}
+        .info-row{display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid rgba(42,42,58,.5);font-size:14px}
+        .info-row:last-child{border-bottom:none}
+        .info-row .label{color:var(--text-dd)}
+        .info-row .value{color:var(--text);font-family:'JetBrains Mono',monospace;font-size:13px}
+        .selector-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px}
+        .selector{padding:10px;background:var(--bg3);border-radius:var(--rxs);font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--accent-l);text-align:center}
+        .activity-chart{display:flex;align-items:flex-end;gap:2px;height:100px;padding:10px 0}
+        .activity-bar{flex:1;background:linear-gradient(180deg,var(--accent),var(--accent-d));border-radius:2px 2px 0 0;min-width:4px;transition:height .5s;cursor:pointer}
+        .activity-bar:hover{opacity:.8}
+        .activity-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--text-dd);margin-top:8px}
+        .loading{text-align:center;padding:60px;color:var(--text-dd)}
+        .error{text-align:center;padding:40px;color:var(--red);background:rgba(239,68,68,.1);border-radius:var(--rs)}
+    </style>
+</head>
+<body>
+    <nav id="nav">
+        <div class="nav-inner">
+            <a href="index.html" class="logo"><div class="logo-mark">CL</div><span>ChainLens</span></a>
+            <ul class="nav-links">
+                <li><a href="index.html#benchmarks">Benchmarks</a></li>
+                <li><a href="tx.html">Transaction</a></li>
+                <li><a href="address.html">Address</a></li>
+                <li><a href="contract.html" class="active">Contract</a></li>
+                <li><a href="block.html">Block</a></li>
+            </ul>
+            <a href="https://github.com/VarunGore36/ChainLens" class="gh-btn" target="_blank"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</a>
+        </div>
+    </nav>
+
+    <section class="section" style="padding-top:120px">
+        <div class="container">
+            <div class="section-head">
+                <div class="label">Intelligence</div>
+                <h2>Contract Intelligence</h2>
+                <p>Analyze contract deployment, callers, activity, and interactions.</p>
+            </div>
+
+            <div class="search-bar">
+                <input type="text" id="address" placeholder="0x..." autocomplete="off">
+                <button onclick="lookup()">Analyze</button>
+            </div>
+
+            <div id="loading" class="loading" style="display:none">Analyzing contract...</div>
+            <div id="error" class="error" style="display:none"></div>
+
+            <div id="result" class="result">
+                <div class="intel-card">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;margin-bottom:20px">
+                        <div>
+                            <h3 style="margin-bottom:8px">📋 Contract Overview</h3>
+                            <div style="font-size:13px;color:var(--text-dd);font-family:'JetBrains Mono',monospace" id="contractAddr"></div>
+                        </div>
+                        <div class="badge-row" id="badges"></div>
+                    </div>
+                    <div class="stat-grid">
+                        <div class="stat-item"><div class="num" id="totalTx">0</div><div class="lbl">Transactions</div></div>
+                        <div class="stat-item"><div class="num" id="uniqueCallers">0</div><div class="lbl">Unique Callers</div></div>
+                        <div class="stat-item"><div class="num" id="contractsCalled">0</div><div class="lbl">Contracts Called</div></div>
+                        <div class="stat-item"><div class="num" id="tokenTransfers">0</div><div class="lbl">Token Transfers</div></div>
+                        <div class="stat-item"><div class="num" id="eventCount">0</div><div class="lbl">Events</div></div>
+                    </div>
+                </div>
+
+                <div class="intel-card">
+                    <h3>📝 Deployment</h3>
+                    <div id="deploymentInfo">
+                        <div class="info-row"><span class="label">First Seen</span><span class="value" id="firstSeen">—</span></div>
+                        <div class="info-row"><span class="label">Deployment Block</span><span class="value" id="deployBlock">—</span></div>
+                        <div class="info-row"><span class="label">Creator</span><span class="value" id="creator">—</span></div>
+                        <div class="info-row"><span class="label">Deployment Tx</span><span class="value" id="deployTx">—</span></div>
+                    </div>
+                </div>
+
+                <div class="intel-card">
+                    <h3>⚡ Activity Over Time</h3>
+                    <div class="activity-chart" id="activityChart"></div>
+                    <div class="activity-labels"><span>Oldest</span><span>Latest</span></div>
+                </div>
+
+                <div class="intel-card">
+                    <h3>🔧 Function Selectors</h3>
+                    <div class="selector-grid" id="selectors"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+    const API_BASE = window.location.hostname === 'localhost' ? 'http://127.0.0.1:8080' : '';
+
+    function shorten(addr, len = 6) {
+        if (!addr) return '—';
+        return addr.slice(0, len + 2) + '...' + addr.slice(-4);
+    }
+
+    async function lookup() {
+        const addr = document.getElementById('address').value.trim();
+        if (!addr) return;
+
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('error').style.display = 'none';
+        document.getElementById('result').classList.remove('visible');
+
+        try {
+            const res = await fetch(`${API_BASE}/api/v1/contracts/${addr}/intelligence`);
+            if (!res.ok) throw new Error((await res.json()).error || 'Contract not found');
+            const data = await res.json();
+            renderResult(data);
+            document.getElementById('result').classList.add('visible');
+        } catch (e) {
+            document.getElementById('error').textContent = e.message;
+            document.getElementById('error').style.display = 'block';
+        } finally {
+            document.getElementById('loading').style.display = 'none';
+        }
+    }
+
+    function renderResult(d) {
+        document.getElementById('contractAddr').textContent = d.address;
+        document.getElementById('totalTx').textContent = d.total_transactions.toLocaleString();
+        document.getElementById('uniqueCallers').textContent = d.unique_callers.toLocaleString();
+        document.getElementById('contractsCalled').textContent = d.unique_contracts_called.toLocaleString();
+        document.getElementById('tokenTransfers').textContent = d.token_transfers.toLocaleString();
+        document.getElementById('eventCount').textContent = d.event_count.toLocaleString();
+
+        document.getElementById('firstSeen').textContent = d.first_seen ? new Date(d.first_seen).toLocaleString() : '—';
+        document.getElementById('deployBlock').textContent = d.deployment_block ? '#' + d.deployment_block.toLocaleString() : '—';
+        document.getElementById('creator').textContent = d.creator ? shorten(d.creator, 10) : '—';
+        document.getElementById('deployTx').textContent = d.deployment_tx ? shorten(d.deployment_tx, 10) : '—';
+
+        let badges = '';
+        if (d.is_token) badges += '<div class="badge token">🪙 Token</div>';
+        if (d.is_nft) badges += '<div class="badge nft">🖼️ NFT</div>';
+        if (!d.is_token && !d.is_nft) badges += '<div class="badge contract">📄 Contract</div>';
+        document.getElementById('badges').innerHTML = badges;
+
+        const selectorsHtml = d.function_selectors.length > 0
+            ? d.function_selectors.map(s => `<div class="selector">${s}</div>`).join('')
+            : '<div style="color:var(--text-dd)">No selectors detected</div>';
+        document.getElementById('selectors').innerHTML = selectorsHtml;
+
+        const activity = d.activity_over_time;
+        if (activity.length > 0) {
+            const maxTx = Math.max(...activity.map(a => a.tx_count), 1);
+            const chartHtml = activity.slice(-50).map(a => {
+                const pct = (a.tx_count / maxTx * 100).toFixed(0);
+                return `<div class="activity-bar" style="height:${Math.max(2, pct)}%" title="Block ${a.block_number}: ${a.tx_count} txs, ${a.event_count} events"></div>`;
+            }).join('');
+            document.getElementById('activityChart').innerHTML = chartHtml;
+        } else {
+            document.getElementById('activityChart').innerHTML = '<div style="color:var(--text-dd);padding:20px;width:100%;text-align:center">No activity data</div>';
+        }
+    }
+
+    document.getElementById('address').addEventListener('keydown', e => { if (e.key === 'Enter') lookup(); });
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('address')) {
+        document.getElementById('address').value = params.get('address');
+        lookup();
+    }
+    </script>
+</body>
+</html>

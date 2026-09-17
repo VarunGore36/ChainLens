@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Address Intelligence — ChainLens</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .search-bar{display:flex;gap:12px;margin-bottom:32px}
+        .search-bar input{flex:1;padding:14px 20px;background:var(--bg2);border:1px solid var(--glass-b);border-radius:var(--rs);color:var(--text);font-size:15px;font-family:'JetBrains Mono',monospace;outline:none;transition:border-color .2s}
+        .search-bar input:focus{border-color:var(--accent)}
+        .search-bar button{padding:14px 28px;background:linear-gradient(135deg,var(--accent),var(--accent-d));color:#fff;border:none;border-radius:var(--rs);font-weight:600;cursor:pointer;transition:all .3s}
+        .search-bar button:hover{transform:translateY(-2px);box-shadow:0 8px 30px var(--glow)}
+        .result{display:none}.result.visible{display:block}
+        .intel-card{background:var(--bg2);border:1px solid var(--glass-b);border-radius:var(--r);padding:32px;margin-bottom:24px}
+        .intel-card h3{font-size:18px;margin-bottom:20px;display:flex;align-items:center;gap:10px}
+        .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+        .stat-item{padding:16px;background:var(--bg3);border-radius:var(--rs);text-align:center}
+        .stat-item .num{font-size:28px;font-weight:800;color:var(--accent-l);font-variant-numeric:tabular-nums}
+        .stat-item .lbl{font-size:11px;color:var(--text-dd);text-transform:uppercase;letter-spacing:1px;margin-top:4px}
+        .tags{display:flex;flex-wrap:wrap;gap:8px}
+        .tag{padding:8px 16px;background:var(--glow-s);border:1px solid var(--glass-b);border-radius:20px;font-size:13px;color:var(--accent-l);transition:all .2s}
+        .tag:hover{border-color:var(--accent)}
+        .graph-container{background:var(--bg3);border-radius:var(--rs);padding:24px;min-height:300px;position:relative;overflow:hidden}
+        .graph-node{position:absolute;padding:10px 16px;background:var(--bg2);border:1px solid var(--glass-b);border-radius:var(--rxs);font-size:11px;font-family:'JetBrains Mono',monospace;color:var(--accent-l);cursor:pointer;transition:all .3s;white-space:nowrap}
+        .graph-node:hover{border-color:var(--accent);transform:scale(1.05);z-index:10}
+        .graph-node.center{background:var(--accent);color:#fff;border-color:var(--accent)}
+        .graph-edge{position:absolute;height:1px;background:var(--glass-b);transform-origin:left center}
+        .graph-label{position:absolute;font-size:9px;color:var(--text-dd);background:var(--bg);padding:2px 6px;border-radius:4px}
+        .anomaly-item{display:flex;align-items:flex-start;gap:14px;padding:16px;background:var(--bg3);border-radius:var(--rs);border-left:3px solid var(--red);margin-bottom:12px}
+        .anomaly-item.medium{border-left-color:var(--amber)}
+        .anomaly-item.low{border-left-color:var(--text-dd)}
+        .anomaly-severity{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:1px}
+        .anomaly-severity.critical{color:var(--red)}
+        .anomaly-severity.high{color:var(--red)}
+        .anomaly-severity.medium{color:var(--amber)}
+        .anomaly-severity.low{color:var(--text-dd)}
+        .anomaly-desc{font-size:13px;color:var(--text-d);margin-top:4px}
+        .anomaly-meta{font-size:11px;color:var(--text-dd);margin-top:8px;font-family:'JetBrains Mono',monospace}
+        .loading{text-align:center;padding:60px;color:var(--text-dd)}
+        .error{text-align:center;padding:40px;color:var(--red);background:rgba(239,68,68,.1);border-radius:var(--rs)}
+        .activity-bar{height:20px;background:var(--glow-s);border-radius:4px;margin-bottom:4px;transition:width .5s}
+        .activity-label{font-size:10px;color:var(--text-dd)}
+    </style>
+</head>
+<body>
+    <nav id="nav">
+        <div class="nav-inner">
+            <a href="index.html" class="logo"><div class="logo-mark">CL</div><span>ChainLens</span></a>
+            <ul class="nav-links">
+                <li><a href="index.html#benchmarks">Benchmarks</a></li>
+                <li><a href="tx.html">Transaction</a></li>
+                <li><a href="address.html" class="active">Address</a></li>
+                <li><a href="contract.html">Contract</a></li>
+                <li><a href="block.html">Block</a></li>
+            </ul>
+            <a href="https://github.com/VarunGore36/ChainLens" class="gh-btn" target="_blank"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</a>
+        </div>
+    </nav>
+
+    <section class="section" style="padding-top:120px">
+        <div class="container">
+            <div class="section-head">
+                <div class="label">Intelligence</div>
+                <h2>Address Intelligence</h2>
+                <p>Analyze address behavior, activity patterns, and relationships.</p>
+            </div>
+
+            <div class="search-bar">
+                <input type="text" id="address" placeholder="0x..." autocomplete="off">
+                <button onclick="lookup()">Analyze</button>
+            </div>
+
+            <div id="loading" class="loading" style="display:none">Analyzing address...</div>
+            <div id="error" class="error" style="display:none"></div>
+
+            <div id="result" class="result">
+                <div class="intel-card">
+                    <h3>📊 Activity Overview</h3>
+                    <div class="stat-grid">
+                        <div class="stat-item"><div class="num" id="totalTx">0</div><div class="lbl">Transactions</div></div>
+                        <div class="stat-item"><div class="num" id="ethSent">0</div><div class="lbl">ETH Sent</div></div>
+                        <div class="stat-item"><div class="num" id="ethRecv">0</div><div class="lbl">ETH Received</div></div>
+                        <div class="stat-item"><div class="num" id="contractsCalled">0</div><div class="lbl">Contracts Called</div></div>
+                        <div class="stat-item"><div class="num" id="uniqueCallers">0</div><div class="lbl">Unique Callers</div></div>
+                        <div class="stat-item"><div class="num" id="tokenSent">0</div><div class="lbl">Tokens Sent</div></div>
+                        <div class="stat-item"><div class="num" id="tokenRecv">0</div><div class="lbl">Tokens Received</div></div>
+                        <div class="stat-item"><div class="num" id="activityLevel">—</div><div class="lbl">Activity Level</div></div>
+                    </div>
+                    <div style="margin-top:16px;display:flex;gap:24px;flex-wrap:wrap;font-size:13px;color:var(--text-dd)">
+                        <div>First seen: <span id="firstSeen" style="color:var(--text)">—</span></div>
+                        <div>Last active: <span id="lastActive" style="color:var(--text)">—</span></div>
+                    </div>
+                </div>
+
+                <div class="intel-card">
+                    <h3>🏷️ Behavior Classification</h3>
+                    <div class="tags" id="classifications"></div>
+                </div>
+
+                <div class="intel-card">
+                    <h3>🕸️ Relationship Graph</h3>
+                    <div style="margin-bottom:16px;display:flex;gap:12px">
+                        <select id="graphDepth" style="padding:8px 12px;background:var(--bg3);border:1px solid var(--glass-b);border-radius:var(--rxs);color:var(--text);font-size:13px">
+                            <option value="1">Depth 1</option>
+                            <option value="2" selected>Depth 2</option>
+                            <option value="3">Depth 3</option>
+                        </select>
+                        <button onclick="loadGraph()" style="padding:8px 16px;background:var(--bg3);border:1px solid var(--glass-b);border-radius:var(--rxs);color:var(--text);cursor:pointer;font-size:13px">Refresh</button>
+                    </div>
+                    <div class="graph-container" id="graphContainer">
+                        <div style="text-align:center;color:var(--text-dd);padding:40px">Enter an address to see relationships</div>
+                    </div>
+                </div>
+
+                <div class="intel-card">
+                    <h3>⚠️ Anomalies</h3>
+                    <div id="anomaliesList">
+                        <div style="color:var(--text-dd)">Loading anomalies...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+    const API_BASE = window.location.hostname === 'localhost' ? 'http://127.0.0.1:8080' : '';
+    let currentAddress = '';
+
+    function shorten(addr, len = 6) {
+        if (!addr) return '—';
+        return addr.slice(0, len + 2) + '...' + addr.slice(-4);
+    }
+
+    async function lookup() {
+        const addr = document.getElementById('address').value.trim();
+        if (!addr) return;
+        currentAddress = addr;
+
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('error').style.display = 'none';
+        document.getElementById('result').classList.remove('visible');
+
+        try {
+            const [intel, anomalies] = await Promise.all([
+                fetch(`${API_BASE}/api/v1/addresses/${addr}/intelligence`).then(r => r.ok ? r.json() : Promise.reject(new Error(r.statusText))),
+                fetch(`${API_BASE}/api/v1/anomalies`).then(r => r.ok ? r.json() : Promise.reject(new Error(r.statusText)))
+            ]);
+            renderIntel(intel);
+            renderAnomalies(anomalies, addr);
+            loadGraph();
+            document.getElementById('result').classList.add('visible');
+        } catch (e) {
+            document.getElementById('error').textContent = 'Failed to analyze address: ' + e.message;
+            document.getElementById('error').style.display = 'block';
+        } finally {
+            document.getElementById('loading').style.display = 'none';
+        }
+    }
+
+    function renderIntel(d) {
+        document.getElementById('totalTx').textContent = d.total_transactions.toLocaleString();
+        document.getElementById('ethSent').textContent = parseFloat(d.total_eth_sent).toFixed(4);
+        document.getElementById('ethRecv').textContent = parseFloat(d.total_eth_received).toFixed(4);
+        document.getElementById('contractsCalled').textContent = d.unique_contracts_called.toLocaleString();
+        document.getElementById('uniqueCallers').textContent = d.unique_callers.toLocaleString();
+        document.getElementById('tokenSent').textContent = d.token_transfers_sent.toLocaleString();
+        document.getElementById('tokenRecv').textContent = d.token_transfers_received.toLocaleString();
+        document.getElementById('activityLevel').textContent = d.activity_level;
+        document.getElementById('firstSeen').textContent = d.first_seen ? new Date(d.first_seen).toLocaleDateString() : '—';
+        document.getElementById('lastActive').textContent = d.last_active ? new Date(d.last_active).toLocaleDateString() : '—';
+
+        const tagsHtml = d.behavior_classifications.map(c => `<div class="tag">${c.replace(/_/g, ' ')}</div>`).join('');
+        document.getElementById('classifications').innerHTML = tagsHtml || '<div style="color:var(--text-dd)">No classifications</div>';
+    }
+
+    function renderAnomalies(anomalies, addr) {
+        const filtered = anomalies.filter(a => a.entity.toLowerCase() === addr.toLowerCase());
+        if (filtered.length === 0) {
+            document.getElementById('anomaliesList').innerHTML = '<div style="color:var(--text-dd)">No anomalies detected for this address</div>';
+            return;
+        }
+        const html = filtered.slice(0, 10).map(a => `
+            <div class="anomaly-item ${a.severity}">
+                <div>
+                    <div class="anomaly-severity ${a.severity}">${a.severity}</div>
+                    <div class="anomaly-desc">${a.description}</div>
+                    <div class="anomaly-meta">Observed: ${a.observed_value.toFixed(0)} | Baseline: ${a.baseline_value.toFixed(0)} | Threshold: ${a.threshold.toFixed(0)}</div>
+                </div>
+            </div>
+        `).join('');
+        document.getElementById('anomaliesList').innerHTML = html;
+    }
+
+    async function loadGraph() {
+        if (!currentAddress) return;
+        const depth = document.getElementById('graphDepth').value;
+        const container = document.getElementById('graphContainer');
+        container.innerHTML = '<div style="text-align:center;color:var(--text-dd);padding:40px">Loading graph...</div>';
+
+        try {
+            const res = await fetch(`${API_BASE}/api/v1/addresses/${currentAddress}/graph?depth=${depth}&limit=30`);
+            if (!res.ok) throw new Error('Failed to load graph');
+            const graph = await res.json();
+            renderGraph(graph, container);
+        } catch (e) {
+            container.innerHTML = `<div style="text-align:center;color:var(--text-dd);padding:40px">${e.message}</div>`;
+        }
+    }
+
+    function renderGraph(graph, container) {
+        container.innerHTML = '';
+        const w = container.offsetWidth;
+        const h = Math.max(400, (graph.nodes.length + 1) * 60);
+
+        const cx = w / 2;
+        const cy = h / 2;
+
+        const centerNode = document.createElement('div');
+        centerNode.className = 'graph-node center';
+        centerNode.textContent = shorten(graph.center, 8);
+        centerNode.style.left = cx + 'px';
+        centerNode.style.top = cy + 'px';
+        centerNode.style.transform = 'translate(-50%, -50%)';
+        container.appendChild(centerNode);
+
+        const angleStep = (2 * Math.PI) / Math.max(graph.nodes.length, 1);
+        const radius = Math.min(w, h) * 0.35;
+
+        graph.nodes.forEach((node, i) => {
+            const angle = angleStep * i - Math.PI / 2;
+            const nx = cx + radius * Math.cos(angle);
+            const ny = cy + radius * Math.sin(angle);
+
+            const edge = document.createElement('div');
+            edge.className = 'graph-edge';
+            const dx = nx - cx;
+            const dy = ny - cy;
+            const len = Math.sqrt(dx * dx + dy * dy);
+            const angleDeg = Math.atan2(dy, dx) * 180 / Math.PI;
+            edge.style.width = len + 'px';
+            edge.style.left = cx + 'px';
+            edge.style.top = cy + 'px';
+            edge.style.transform = `rotate(${angleDeg}deg)`;
+            container.appendChild(edge);
+
+            const label = document.createElement('div');
+            label.className = 'graph-label';
+            const relevantEdge = graph.edges.find(e => e.to === node.address || e.from === node.address);
+            label.textContent = relevantEdge ? relevantEdge.relationship.replace(/_/g, ' ') : '';
+            label.style.left = (cx + nx) / 2 + 'px';
+            label.style.top = (cy + ny) / 2 - 10 + 'px';
+            label.style.transform = 'translate(-50%, -50%)';
+            container.appendChild(label);
+
+            const nodeEl = document.createElement('div');
+            nodeEl.className = 'graph-node';
+            nodeEl.textContent = shorten(node.address, 6);
+            nodeEl.style.left = nx + 'px';
+            nodeEl.style.top = ny + 'px';
+            nodeEl.style.transform = 'translate(-50%, -50%)';
+            nodeEl.title = node.address;
+            nodeEl.onclick = () => {
+                document.getElementById('address').value = node.address;
+                lookup();
+            };
+            container.appendChild(nodeEl);
+        });
+
+        container.style.height = h + 'px';
+    }
+
+    document.getElementById('address').addEventListener('keydown', e => { if (e.key === 'Enter') lookup(); });
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('address')) {
+        document.getElementById('address').value = params.get('address');
+        lookup();
+    }
+    </script>
+</body>
+</html>

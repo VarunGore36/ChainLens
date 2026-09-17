@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Block Analytics — ChainLens</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .search-bar{display:flex;gap:12px;margin-bottom:32px}
+        .search-bar input{flex:1;padding:14px 20px;background:var(--bg2);border:1px solid var(--glass-b);border-radius:var(--rs);color:var(--text);font-size:15px;font-family:'JetBrains Mono',monospace;outline:none;transition:border-color .2s}
+        .search-bar input:focus{border-color:var(--accent)}
+        .search-bar button{padding:14px 28px;background:linear-gradient(135deg,var(--accent),var(--accent-d));color:#fff;border:none;border-radius:var(--rs);font-weight:600;cursor:pointer;transition:all .3s}
+        .search-bar button:hover{transform:translateY(-2px);box-shadow:0 8px 30px var(--glow)}
+        .result{display:none}.result.visible{display:block}
+        .block-card{background:var(--bg2);border:1px solid var(--glass-b);border-radius:var(--r);padding:32px;margin-bottom:24px}
+        .block-card h3{font-size:18px;margin-bottom:20px;display:flex;align-items:center;gap:10px}
+        .stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+        .stat-item{padding:16px;background:var(--bg3);border-radius:var(--rs);text-align:center}
+        .stat-item .num{font-size:28px;font-weight:800;color:var(--accent-l);font-variant-numeric:tabular-nums}
+        .stat-item .lbl{font-size:11px;color:var(--text-dd);text-transform:uppercase;letter-spacing:1px;margin-top:4px}
+        .gas-meter{height:24px;background:var(--bg3);border-radius:var(--rxs);overflow:hidden;margin:12px 0;position:relative}
+        .gas-fill{height:100%;background:linear-gradient(90deg,var(--green),var(--amber),var(--red));border-radius:var(--rxs);transition:width .8s}
+        .gas-label{display:flex;justify-content:space-between;font-size:11px;color:var(--text-dd)}
+        .mev-item{display:flex;align-items:flex-start;gap:14px;padding:16px;background:var(--bg3);border-radius:var(--rs);border-left:3px solid var(--amber);margin-bottom:12px}
+        .mev-item.high{border-left-color:var(--red)}
+        .mev-type{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:1px;color:var(--amber)}
+        .mev-type.high{color:var(--red)}
+        .mev-desc{font-size:13px;color:var(--text-d);margin-top:4px}
+        .mev-meta{font-size:11px;color:var(--text-dd);margin-top:8px;font-family:'JetBrains Mono',monospace}
+        .mev-confidence{display:inline-block;padding:2px 8px;background:rgba(245,158,11,.15);border-radius:10px;font-size:11px;color:var(--amber);margin-left:8px}
+        .unusual-tx{display:flex;align-items:center;gap:12px;padding:12px;background:var(--bg3);border-radius:var(--rxs);margin-bottom:8px}
+        .unusual-tx .hash{font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--accent-l);cursor:pointer}
+        .unusual-tx .hash:hover{text-decoration:underline}
+        .priority-bar{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+        .priority-bar .label{width:120px;font-size:12px;color:var(--text-dd);text-align:right}
+        .priority-bar .bar-track{flex:1;height:24px;background:var(--bg3);border-radius:var(--rxs);overflow:hidden}
+        .priority-bar .bar-fill{height:100%;background:linear-gradient(90deg,var(--accent-d),var(--accent));border-radius:var(--rxs);display:flex;align-items:center;justify-content:flex-end;padding-right:10px;font-size:11px;font-weight:600;color:#fff;font-family:'JetBrains Mono',monospace}
+        .loading{text-align:center;padding:60px;color:var(--text-dd)}
+        .error{text-align:center;padding:40px;color:var(--red);background:rgba(239,68,68,.1);border-radius:var(--rs)}
+    </style>
+</head>
+<body>
+    <nav id="nav">
+        <div class="nav-inner">
+            <a href="index.html" class="logo"><div class="logo-mark">CL</div><span>ChainLens</span></a>
+            <ul class="nav-links">
+                <li><a href="index.html#benchmarks">Benchmarks</a></li>
+                <li><a href="tx.html">Transaction</a></li>
+                <li><a href="address.html">Address</a></li>
+                <li><a href="contract.html">Contract</a></li>
+                <li><a href="block.html" class="active">Block</a></li>
+            </ul>
+            <a href="https://github.com/VarunGore36/ChainLens" class="gh-btn" target="_blank"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</a>
+        </div>
+    </nav>
+
+    <section class="section" style="padding-top:120px">
+        <div class="container">
+            <div class="section-head">
+                <div class="label">Analytics</div>
+                <h2>Block Analytics</h2>
+                <p>Transaction statistics, gas usage, priority fees, and MEV detection.</p>
+            </div>
+
+            <div class="search-bar">
+                <input type="text" id="blockNumber" placeholder="Block number (e.g. 18000000)" autocomplete="off">
+                <button onclick="lookup()">Analyze</button>
+            </div>
+
+            <div id="loading" class="loading" style="display:none">Analyzing block...</div>
+            <div id="error" class="error" style="display:none"></div>
+
+            <div id="result" class="result">
+                <div class="block-card">
+                    <h3>📊 Block Overview</h3>
+                    <div style="font-size:13px;color:var(--text-dd);margin-bottom:16px;font-family:'JetBrains Mono',monospace" id="blockHeader"></div>
+                    <div class="stat-grid">
+                        <div class="stat-item"><div class="num" id="txCount">0</div><div class="lbl">Transactions</div></div>
+                        <div class="stat-item"><div class="num" id="gasUsed">0</div><div class="lbl">Gas Used</div></div>
+                        <div class="stat-item"><div class="num" id="gasLimit">0</div><div class="lbl">Gas Limit</div></div>
+                        <div class="stat-item"><div class="num" id="baseFee">—</div><div class="lbl">Base Fee</div></div>
+                    </div>
+                    <div style="margin-top:20px">
+                        <div style="font-size:13px;margin-bottom:8px">Gas Utilization</div>
+                        <div class="gas-meter"><div class="gas-fill" id="gasFill"></div></div>
+                        <div class="gas-label"><span id="gasPercent">0%</span><span id="gasUsedLabel"></span></div>
+                    </div>
+                </div>
+
+                <div class="block-card">
+                    <h3>💰 Priority Fees</h3>
+                    <div class="stat-grid" style="margin-bottom:20px">
+                        <div class="stat-item"><div class="num" id="totalPriority">0</div><div class="lbl">Total</div></div>
+                        <div class="stat-item"><div class="num" id="avgPriority">0</div><div class="lbl">Average</div></div>
+                        <div class="stat-item"><div class="num" id="maxPriority">0</div><div class="lbl">Maximum</div></div>
+                    </div>
+                </div>
+
+                <div class="block-card">
+                    <h3>⚡ Potential MEV Activity</h3>
+                    <div id="mevEvents">
+                        <div style="color:var(--text-dd)">Loading MEV analysis...</div>
+                    </div>
+                </div>
+
+                <div class="block-card">
+                    <h3>⚠️ Unusual Transactions</h3>
+                    <div id="unusualTxs">
+                        <div style="color:var(--text-dd)">Loading...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+    const API_BASE = window.location.hostname === 'localhost' ? 'http://127.0.0.1:8080' : '';
+
+    function shorten(addr, len = 6) {
+        if (!addr) return '—';
+        return addr.slice(0, len + 2) + '...' + addr.slice(-4);
+    }
+
+    function formatGwei(wei) {
+        if (!wei) return '0';
+        const gwei = parseFloat(wei) / 1e9;
+        return gwei.toFixed(2) + ' Gwei';
+    }
+
+    function formatEth(wei) {
+        if (!wei) return '0';
+        const eth = parseFloat(wei) / 1e18;
+        return eth.toFixed(6) + ' ETH';
+    }
+
+    async function lookup() {
+        const num = document.getElementById('blockNumber').value.trim();
+        if (!num) return;
+
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('error').style.display = 'none';
+        document.getElementById('result').classList.remove('visible');
+
+        try {
+            const res = await fetch(`${API_BASE}/api/v1/blocks/${num}/analytics`);
+            if (!res.ok) throw new Error((await res.json()).error || 'Block not found');
+            const data = await res.json();
+            renderResult(data);
+            document.getElementById('result').classList.add('visible');
+        } catch (e) {
+            document.getElementById('error').textContent = e.message;
+            document.getElementById('error').style.display = 'block';
+        } finally {
+            document.getElementById('loading').style.display = 'none';
+        }
+    }
+
+    function renderResult(d) {
+        document.getElementById('blockHeader').textContent = `Block #${d.block_number.toLocaleString()} — ${new Date(d.timestamp).toLocaleString()}`;
+        document.getElementById('txCount').textContent = d.tx_count.toLocaleString();
+        document.getElementById('gasUsed').textContent = d.gas_used.toLocaleString();
+        document.getElementById('gasLimit').textContent = d.gas_limit.toLocaleString();
+        document.getElementById('baseFee').textContent = d.base_fee ? formatGwei(d.base_fee) : '—';
+
+        const gasPct = d.gas_limit > 0 ? (d.gas_used / d.gas_limit * 100) : 0;
+        document.getElementById('gasFill').style.width = gasPct.toFixed(1) + '%';
+        document.getElementById('gasPercent').textContent = gasPct.toFixed(1) + '%';
+        document.getElementById('gasUsedLabel').textContent = `${d.gas_used.toLocaleString()} / ${d.gas_limit.toLocaleString()}`;
+
+        document.getElementById('totalPriority').textContent = formatEth(d.total_priority_fees);
+        document.getElementById('avgPriority').textContent = formatGwei(d.avg_priority_fee);
+        document.getElementById('maxPriority').textContent = formatGwei(d.max_priority_fee);
+
+        const mevHtml = d.mev_events.length > 0 ? d.mev_events.map(e => `
+            <div class="mev-item ${e.severity}">
+                <div>
+                    <div class="mev-type ${e.severity}">${e.mev_type.replace(/_/g, ' ')}<span class="mev-confidence">${(e.confidence * 100).toFixed(0)}% confidence</span></div>
+                    <div class="mev-desc">${e.description}</div>
+                    <div class="mev-meta">
+                        ${e.involved_addresses.length > 0 ? 'Addresses: ' + e.involved_addresses.map(a => shorten(a)).join(', ') : ''}
+                        ${e.involved_transactions.length > 0 ? ' | Txs: ' + e.involved_transactions.length : ''}
+                    </div>
+                </div>
+            </div>
+        `).join('') : '<div style="color:var(--text-dd)">No MEV activity detected in this block</div>';
+        document.getElementById('mevEvents').innerHTML = mevHtml;
+
+        const unusualHtml = d.unusual_transactions.length > 0 ? d.unusual_transactions.map(hash => `
+            <div class="unusual-tx">
+                <span style="font-size:14px">🔺</span>
+                <a href="tx.html?hash=${hash}" class="hash">${hash}</a>
+                <span style="font-size:11px;color:var(--text-dd)">Large value transfer</span>
+            </div>
+        `).join('') : '<div style="color:var(--text-dd)">No unusual transactions</div>';
+        document.getElementById('unusualTxs').innerHTML = unusualHtml;
+    }
+
+    document.getElementById('blockNumber').addEventListener('keydown', e => { if (e.key === 'Enter') lookup(); });
+
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('number')) {
+        document.getElementById('blockNumber').value = params.get('number');
+        lookup();
+    }
+    </script>
+</body>
+</html>
