@@ -61,4 +61,23 @@ mod tests {
             "expected near-instant, got {elapsed:?}"
         );
     }
+
+    #[test]
+    #[should_panic(expected = "rate limit must be > 0")]
+    fn rate_limit_zero_panics() {
+        let _ = RateLimit::new(0);
+    }
+
+    #[tokio::test]
+    async fn rate_limit_one_per_second_delays() {
+        let limiter = RateLimit::new(1);
+        let start = Instant::now();
+        limiter.wait().await;
+        limiter.wait().await;
+        let elapsed = start.elapsed();
+        assert!(
+            elapsed >= Duration::from_millis(500),
+            "expected ~1s delay for 1 req/s, got {elapsed:?}"
+        );
+    }
 }

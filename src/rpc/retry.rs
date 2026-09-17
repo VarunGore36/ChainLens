@@ -109,4 +109,44 @@ mod tests {
         }
         assert!(any_differ, "jitter appears to be constant");
     }
+
+    #[test]
+    fn zero_base_and_max_delay_gives_zero() {
+        let policy = RetryPolicy {
+            max_retries: 3,
+            base_delay: Duration::ZERO,
+            max_delay: Duration::ZERO,
+        };
+        for attempt in 0..5 {
+            assert_eq!(
+                policy.delay_for_attempt(attempt),
+                Duration::ZERO,
+                "attempt {attempt} should be zero"
+            );
+        }
+    }
+
+    #[test]
+    fn very_large_attempt_stays_capped() {
+        let policy = RetryPolicy {
+            max_retries: 3,
+            base_delay: Duration::from_millis(100),
+            max_delay: Duration::from_millis(500),
+        };
+        for _ in 0..50 {
+            let d = policy.delay_for_attempt(u32::MAX);
+            assert!(d <= Duration::from_millis(500), "delay {d:?} exceeded cap");
+        }
+    }
+
+    #[test]
+    fn max_retries_zero_still_returns_delay() {
+        let policy = RetryPolicy {
+            max_retries: 0,
+            base_delay: Duration::from_millis(100),
+            max_delay: Duration::from_secs(1),
+        };
+        let d = policy.delay_for_attempt(0);
+        assert!(d <= Duration::from_millis(100));
+    }
 }

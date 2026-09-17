@@ -282,6 +282,171 @@ mod tests {
     }
 
     #[test]
+    fn status_value_2_is_preserved() {
+        let mut block = minimal_block();
+        let tx_hash = B256::with_last_byte(0xaa);
+        block.transactions.push(TransactionResponse {
+            hash: tx_hash,
+            transaction_index: 0,
+            from: Address::ZERO,
+            to: Some(Address::ZERO),
+            value: U256::ZERO,
+            nonce: 0,
+            gas: 21000,
+            gas_price: Some(U256::from(1u64)),
+            input: Bytes::new(),
+            transaction_type: Some(0),
+            max_fee_per_gas: None,
+            max_priority_fee_per_gas: None,
+            chain_id: Some(U256::from(1u64)),
+            v: Some(U256::from(27u64)),
+            r: Some(U256::ZERO),
+            s: Some(U256::ZERO),
+        });
+
+        let mut receipt = minimal_receipt(tx_hash);
+        receipt.status = Some(2);
+        let result = decode_block(&block, &[receipt]).unwrap();
+        assert_eq!(
+            result.transactions[0].status,
+            Some(2),
+            "status=2 is preserved (only values > 255 would be clamped to 0)"
+        );
+    }
+
+    #[test]
+    fn status_value_256_clamped_to_0() {
+        let mut block = minimal_block();
+        let tx_hash = B256::with_last_byte(0xaa);
+        block.transactions.push(TransactionResponse {
+            hash: tx_hash,
+            transaction_index: 0,
+            from: Address::ZERO,
+            to: Some(Address::ZERO),
+            value: U256::ZERO,
+            nonce: 0,
+            gas: 21000,
+            gas_price: Some(U256::from(1u64)),
+            input: Bytes::new(),
+            transaction_type: Some(0),
+            max_fee_per_gas: None,
+            max_priority_fee_per_gas: None,
+            chain_id: Some(U256::from(1u64)),
+            v: Some(U256::from(27u64)),
+            r: Some(U256::ZERO),
+            s: Some(U256::ZERO),
+        });
+
+        let mut receipt = minimal_receipt(tx_hash);
+        receipt.status = Some(256);
+        let result = decode_block(&block, &[receipt]).unwrap();
+        assert_eq!(
+            result.transactions[0].status,
+            Some(0),
+            "status=256 overflows u8, silently clamped to 0"
+        );
+    }
+
+    #[test]
+    fn transaction_type_256_silently_becomes_0() {
+        let mut block = minimal_block();
+        let tx_hash = B256::with_last_byte(0xaa);
+        block.transactions.push(TransactionResponse {
+            hash: tx_hash,
+            transaction_index: 0,
+            from: Address::ZERO,
+            to: Some(Address::ZERO),
+            value: U256::ZERO,
+            nonce: 0,
+            gas: 21000,
+            gas_price: Some(U256::from(1u64)),
+            input: Bytes::new(),
+            transaction_type: Some(256),
+            max_fee_per_gas: None,
+            max_priority_fee_per_gas: None,
+            chain_id: Some(U256::from(1u64)),
+            v: Some(U256::from(27u64)),
+            r: Some(U256::ZERO),
+            s: Some(U256::ZERO),
+        });
+
+        let receipt = minimal_receipt(tx_hash);
+        let result = decode_block(&block, &[receipt]).unwrap();
+        assert_eq!(
+            result.transactions[0].tx_type, 0,
+            "type=256 silently mapped to 0 (Legacy)"
+        );
+    }
+
+    #[test]
+    fn pre_eip1559_block_with_no_base_fee() {
+        let mut block = minimal_block();
+        block.base_fee_per_gas = None;
+        let result = decode_block(&block, &[]).unwrap();
+        assert!(result.block.base_fee_per_gas.is_none());
+    }
+
+    #[test]
+    fn more_receipts_than_transactions_rejected() {
+        let mut block = minimal_block();
+        let tx_hash = B256::with_last_byte(0xaa);
+        block.transactions.push(TransactionResponse {
+            hash: tx_hash,
+            transaction_index: 0,
+            from: Address::ZERO,
+            to: Some(Address::ZERO),
+            value: U256::ZERO,
+            nonce: 0,
+            gas: 21000,
+            gas_price: Some(U256::from(1u64)),
+            input: Bytes::new(),
+            transaction_type: Some(0),
+            max_fee_per_gas: None,
+            max_priority_fee_per_gas: None,
+            chain_id: Some(U256::from(1u64)),
+            v: Some(U256::from(27u64)),
+            r: Some(U256::ZERO),
+            s: Some(U256::ZERO),
+        });
+
+        let receipt1 = minimal_receipt(tx_hash);
+        let receipt2 = minimal_receipt(B256::with_last_byte(0xbb));
+        let result = decode_block(&block, &[receipt1, receipt2]);
+        assert!(matches!(
+            result,
+            Err(DecodeError::ReceiptCountMismatch { .. })
+        ));
+    }
+
+    #[test]
+    fn empty_logs_array() {
+        let block = minimal_block();
+        let result = decode_block(&block, &[]).unwrap();
+        assert!(result.logs.is_empty());
+    }
+
+    #[test]
+    fn log_index_starts_at_nonzero() {
+        let block = minimal_block();
+        let raw_logs = vec![LogResponse {
+            address: Address::ZERO,
+            topics: vec![],
+            data: Bytes::new(),
+            block_number: 1,
+            transaction_hash: B256::ZERO,
+            transaction_index: 0,
+            block_hash: B256::ZERO,
+            log_index: 5,
+            removed: false,
+        }];
+        let result = decode_logs(&block, &raw_logs);
+        assert!(
+            matches!(result, Err(DecodeError::LogIndexGap { actual: 5, expected: 0, .. })),
+            "should reject log_index=5 when expecting 0"
+        );
+    }
+
+    #[test]
     fn decodes_a_transaction_with_eip1559_fields() {
         let mut block = minimal_block();
         let tx_hash = B256::with_last_byte(0xaa);

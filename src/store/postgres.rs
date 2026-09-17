@@ -266,4 +266,35 @@ mod tests {
         let val = U256::from(1_000_000_000_000_000_000u64);
         assert_eq!(u256_to_numeric(val), "1000000000000000000");
     }
+
+    #[test]
+    fn u256_to_numeric_handles_max_value() {
+        let val = U256::MAX;
+        let result = u256_to_numeric(val);
+        assert_eq!(
+            result,
+            "115792089237316195423570985008687907853269984665640564039457584007913129639935"
+        );
+    }
+
+    #[test]
+    fn u256_to_numeric_handles_one() {
+        assert_eq!(u256_to_numeric(U256::from(1u64)), "1");
+    }
+
+    #[test]
+    fn u256_to_numeric_handles_u64_max() {
+        let val = U256::from(u64::MAX);
+        assert_eq!(u256_to_numeric(val), "18446744073709551615");
+    }
+
+    #[test]
+    fn num_bigint_handles_zero() {
+        assert_eq!(num_bigint(0), "0");
+    }
+
+    #[test]
+    fn num_bigint_handles_max() {
+        assert_eq!(num_bigint(u64::MAX), "18446744073709551615");
+    }
 }

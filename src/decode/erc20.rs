@@ -269,6 +269,136 @@ mod tests {
     }
 
     #[test]
+    fn erc20_empty_data_rejected() {
+        let log = Log {
+            block_number: 1,
+            log_index: 0,
+            tx_hash: B256::ZERO,
+            address: Address::ZERO,
+            topic0: Some(TRANSFER_TOPIC),
+            topic1: Some(B256::ZERO),
+            topic2: Some(B256::ZERO),
+            topic3: None,
+            data: Bytes::new(),
+        };
+        let result = decode_token_transfers(&[log]);
+        assert!(matches!(
+            result,
+            Err(DecodeError::InvalidErc20DataLength { length: 0, .. })
+        ));
+    }
+
+    #[test]
+    fn erc20_31_bytes_data_rejected() {
+        let log = Log {
+            block_number: 1,
+            log_index: 0,
+            tx_hash: B256::ZERO,
+            address: Address::ZERO,
+            topic0: Some(TRANSFER_TOPIC),
+            topic1: Some(B256::ZERO),
+            topic2: Some(B256::ZERO),
+            topic3: None,
+            data: Bytes::from(vec![0u8; 31]),
+        };
+        let result = decode_token_transfers(&[log]);
+        assert!(matches!(
+            result,
+            Err(DecodeError::InvalidErc20DataLength { length: 31, .. })
+        ));
+    }
+
+    #[test]
+    fn erc20_33_bytes_data_rejected() {
+        let log = Log {
+            block_number: 1,
+            log_index: 0,
+            tx_hash: B256::ZERO,
+            address: Address::ZERO,
+            topic0: Some(TRANSFER_TOPIC),
+            topic1: Some(B256::ZERO),
+            topic2: Some(B256::ZERO),
+            topic3: None,
+            data: Bytes::from(vec![0u8; 33]),
+        };
+        let result = decode_token_transfers(&[log]);
+        assert!(matches!(
+            result,
+            Err(DecodeError::InvalidErc20DataLength { length: 33, .. })
+        ));
+    }
+
+    #[test]
+    fn three_topics_with_empty_data_fails_as_erc20() {
+        let log = Log {
+            block_number: 1,
+            log_index: 0,
+            tx_hash: B256::ZERO,
+            address: Address::ZERO,
+            topic0: Some(TRANSFER_TOPIC),
+            topic1: Some(B256::ZERO),
+            topic2: Some(B256::ZERO),
+            topic3: None,
+            data: Bytes::new(),
+        };
+        let result = decode_token_transfers(&[log]);
+        assert!(
+            matches!(result, Err(DecodeError::InvalidErc20DataLength { length: 0, .. })),
+            "3 topics + empty data falls into ERC-20 path, rejects empty data"
+        );
+    }
+
+    #[test]
+    fn zero_address_from_and_to_is_valid() {
+        let log = make_erc20_transfer_log(0, Address::ZERO, Address::ZERO, U256::from(100u64));
+        let transfers = decode_token_transfers(&[log]).unwrap();
+        assert_eq!(transfers[0].from, Address::ZERO);
+        assert_eq!(transfers[0].to, Address::ZERO);
+    }
+
+    #[test]
+    fn zero_value_transfer_is_valid() {
+        let log = make_erc20_transfer_log(
+            0,
+            Address::with_last_byte(0x01),
+            Address::with_last_byte(0x02),
+            U256::ZERO,
+        );
+        let transfers = decode_token_transfers(&[log]).unwrap();
+        assert_eq!(transfers[0].value, U256::ZERO);
+    }
+
+    #[test]
+    fn self_transfer_is_valid() {
+        let addr = Address::with_last_byte(0x01);
+        let log = make_erc20_transfer_log(0, addr, addr, U256::from(100u64));
+        let transfers = decode_token_transfers(&[log]).unwrap();
+        assert_eq!(transfers[0].from, transfers[0].to);
+    }
+
+    #[test]
+    fn max_u256_value_decodes() {
+        let max_val = U256::MAX;
+        let data_bytes = max_val.to_be_bytes_vec();
+        let mut data = [0u8; 32];
+        let start = 32usize.saturating_sub(data_bytes.len());
+        data[start..].copy_from_slice(&data_bytes);
+        let log = Log {
+            block_number: 1,
+            log_index: 0,
+            tx_hash: B256::ZERO,
+            address: Address::with_last_byte(0x42),
+            topic0: Some(TRANSFER_TOPIC),
+            topic1: Some(address_to_topic(Address::with_last_byte(0x01))),
+            topic2: Some(address_to_topic(Address::with_last_byte(0x02))),
+            topic3: None,
+            data: Bytes::from(data.to_vec()),
+        };
+        let transfers = decode_token_transfers(&[log]).unwrap();
+        assert_eq!(transfers[0].value, U256::MAX);
+    }
+
+    #[test]
     fn erc20_address_extraction_round_trips() {
         let original = Address::with_last_byte(0xab);
         let as_topic = address_to_topic(original);

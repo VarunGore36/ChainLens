@@ -391,4 +391,119 @@ mod tests {
         use clap::CommandFactory;
         Config::command().debug_assert();
     }
+
+    #[test]
+    fn rejects_rpc_rate_limit_at_max_boundary() {
+        let mut config = valid();
+        config.rpc_rate_limit = 1001;
+        assert!(matches!(
+            config.validate(),
+            Err(ConfigError::Range {
+                setting: "CHAINLENS_RPC_RATE_LIMIT",
+                actual: 1001,
+                ..
+            })
+        ));
+    }
+
+    #[test]
+    fn accepts_rpc_rate_limit_at_max() {
+        let mut config = valid();
+        config.rpc_rate_limit = 1000;
+        assert!(config.validate().is_ok());
+    }
+
+    #[test]
+    fn accepts_rpc_rate_limit_at_min() {
+        let mut config = valid();
+        config.rpc_rate_limit = 1;
+        assert!(config.validate().is_ok());
+    }
+
+    #[test]
+    fn rejects_rpc_max_retries_above_max() {
+        let mut config = valid();
+        config.rpc_max_retries = 11;
+        assert!(matches!(
+            config.validate(),
+            Err(ConfigError::Range {
+                setting: "CHAINLENS_RPC_MAX_RETRIES",
+                ..
+            })
+        ));
+    }
+
+    #[test]
+    fn accepts_rpc_max_retries_at_max() {
+        let mut config = valid();
+        config.rpc_max_retries = 10;
+        assert!(config.validate().is_ok());
+    }
+
+    #[test]
+    fn accepts_zero_retries() {
+        let mut config = valid();
+        config.rpc_max_retries = 0;
+        assert!(config.validate().is_ok());
+    }
+
+    #[test]
+    fn rejects_db_connections_above_max() {
+        let mut config = valid();
+        config.db_max_connections = 201;
+        assert!(matches!(
+            config.validate(),
+            Err(ConfigError::Range {
+                setting: "CHAINLENS_DB_MAX_CONNECTIONS",
+                ..
+            })
+        ));
+    }
+
+    #[test]
+    fn accepts_db_connections_at_max() {
+        let mut config = valid();
+        config.db_max_connections = 200;
+        assert!(config.validate().is_ok());
+    }
+
+    #[test]
+    fn head_poll_secs_zero_is_accepted() {
+        let mut config = valid();
+        config.head_poll_secs = 0;
+        assert!(
+            config.validate().is_ok(),
+            "head_poll_secs=0 has no validation"
+        );
+    }
+
+    #[test]
+    fn worker_count_zero_is_accepted() {
+        let mut config = valid();
+        config.worker_count = 0;
+        assert!(
+            config.validate().is_ok(),
+            "worker_count=0 has no validation (would hang pipeline)"
+        );
+    }
+
+    #[test]
+    fn fetch_queue_depth_zero_is_accepted() {
+        let mut config = valid();
+        config.fetch_queue_depth = 0;
+        assert!(
+            config.validate().is_ok(),
+            "fetch_queue_depth=0 has no validation (zero-capacity channel)"
+        );
+    }
+
+    #[test]
+    fn max_reorg_depth_zero_is_accepted() {
+        let mut config = valid();
+        config.max_reorg_depth = 0;
+        assert!(
+            config.validate().is_ok(),
+            "max_reorg_depth=0 has no validation (disables reorg detection)"
+        );
+    }
 }
