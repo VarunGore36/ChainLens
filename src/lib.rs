@@ -3,6 +3,7 @@ pub mod config;
 pub mod db;
 pub mod decode;
 pub mod domain;
+pub mod intelligence;
 pub mod metrics;
 pub mod pipeline;
 pub mod reorg;

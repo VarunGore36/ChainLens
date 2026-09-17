@@ -5,6 +5,7 @@ use serde::Deserialize;
 use sqlx::{PgPool, Row};
 
 use super::dto::*;
+use crate::intelligence;
 
 fn to_hex(bytes: &[u8]) -> String {
     hex::encode(bytes)
@@ -260,4 +261,151 @@ pub async fn status(
         finalized_number: finalized,
         lag,
     }))
+}
+
+pub async fn explain_transaction(
+    State(pool): State<PgPool>,
+    Path(hash): Path<String>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
+    match intelligence::actions::explain_transaction(&pool, &hash).await {
+        Ok(explanation) => match serde_json::to_value(explanation) {
+            Ok(v) => Ok(Json(v)),
+            Err(e) => Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: format!("Serialization error: {}", e),
+                }),
+            )),
+        },
+        Err(e) => Err((
+            StatusCode::NOT_FOUND,
+            Json(ErrorResponse {
+                error: format!("Transaction not found: {}", e),
+            }),
+        )),
+    }
+}
+
+pub async fn get_address_intelligence(
+    State(pool): State<PgPool>,
+    Path(address): Path<String>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
+    match intelligence::address::analyze_address(&pool, &address).await {
+        Ok(intel) => match serde_json::to_value(intel) {
+            Ok(v) => Ok(Json(v)),
+            Err(e) => Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: format!("Serialization error: {}", e),
+                }),
+            )),
+        },
+        Err(e) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse {
+                error: format!("Failed to analyze address: {}", e),
+            }),
+        )),
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct GraphQuery {
+    pub depth: Option<u32>,
+    pub limit: Option<u32>,
+}
+
+pub async fn get_address_graph(
+    State(pool): State<PgPool>,
+    Path(address): Path<String>,
+    Query(query): Query<GraphQuery>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
+    let depth = query.depth.unwrap_or(2).min(5);
+    let limit = query.limit.unwrap_or(50).min(200);
+
+    match intelligence::graph::build_graph(&pool, &address, depth, limit).await {
+        Ok(graph) => match serde_json::to_value(graph) {
+            Ok(v) => Ok(Json(v)),
+            Err(e) => Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: format!("Serialization error: {}", e),
+                }),
+            )),
+        },
+        Err(e) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse {
+                error: format!("Failed to build graph: {}", e),
+            }),
+        )),
+    }
+}
+
+pub async fn get_contract_intelligence(
+    State(pool): State<PgPool>,
+    Path(address): Path<String>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
+    match intelligence::contract::analyze_contract(&pool, &address).await {
+        Ok(intel) => match serde_json::to_value(intel) {
+            Ok(v) => Ok(Json(v)),
+            Err(e) => Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: format!("Serialization error: {}", e),
+                }),
+            )),
+        },
+        Err(e) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse {
+                error: format!("Failed to analyze contract: {}", e),
+            }),
+        )),
+    }
+}
+
+pub async fn get_anomalies(
+    State(pool): State<PgPool>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
+    match intelligence::anomaly::detect_anomalies(&pool).await {
+        Ok(anomalies) => match serde_json::to_value(anomalies) {
+            Ok(v) => Ok(Json(v)),
+            Err(e) => Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: format!("Serialization error: {}", e),
+                }),
+            )),
+        },
+        Err(e) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse {
+                error: format!("Failed to detect anomalies: {}", e),
+            }),
+        )),
+    }
+}
+
+pub async fn get_block_analytics(
+    State(pool): State<PgPool>,
+    Path(number): Path<i64>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
+    match intelligence::mev::analyze_block(&pool, number).await {
+        Ok(analytics) => match serde_json::to_value(analytics) {
+            Ok(v) => Ok(Json(v)),
+            Err(e) => Err((
+                StatusCode::INTERNAL_SERVER_ERROR,
+                Json(ErrorResponse {
+                    error: format!("Serialization error: {}", e),
+                }),
+            )),
+        },
+        Err(e) => Err((
+            StatusCode::NOT_FOUND,
+            Json(ErrorResponse {
+                error: format!("Block not found: {}", e),
+            }),
+        )),
+    }
 }
