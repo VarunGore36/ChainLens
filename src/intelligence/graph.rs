@@ -252,4 +252,65 @@ mod tests {
         assert_eq!(node.address, "0x1234");
         assert_eq!(node.interaction_count, 5);
     }
+
+    #[test]
+    fn graph_edge_creation() {
+        let edge = GraphEdge {
+            from: "0x1111".to_string(),
+            to: "0x2222".to_string(),
+            relationship: RelationshipType::TransferredTo,
+            count: 10,
+            total_value: Some("1.5".to_string()),
+            first_seen: Some("2024-01-01".to_string()),
+            last_seen: Some("2024-01-15".to_string()),
+        };
+        assert_eq!(edge.from, "0x1111");
+        assert_eq!(edge.count, 10);
+    }
+
+    #[test]
+    fn all_relationship_types_serialize() {
+        let types = vec![
+            RelationshipType::TransferredTo,
+            RelationshipType::ReceivedFrom,
+            RelationshipType::Called,
+            RelationshipType::Approved,
+            RelationshipType::Deployed,
+            RelationshipType::InteractedWith,
+            RelationshipType::TransferredTokenTo,
+        ];
+        for rt in types {
+            let json = serde_json::to_string(&rt).unwrap();
+            assert!(!json.is_empty());
+        }
+    }
+
+    #[test]
+    fn graph_structure() {
+        let graph = AddressGraph {
+            center: "0xcenter".to_string(),
+            nodes: vec![GraphNode {
+                address: "0x1111".to_string(),
+                label: None,
+                interaction_count: 5,
+                first_interaction: None,
+                last_interaction: None,
+            }],
+            edges: vec![GraphEdge {
+                from: "0xcenter".to_string(),
+                to: "0x1111".to_string(),
+                relationship: RelationshipType::TransferredTo,
+                count: 3,
+                total_value: None,
+                first_seen: None,
+                last_seen: None,
+            }],
+            depth_reached: 1,
+            total_nodes: 1,
+            total_edges: 1,
+        };
+        assert_eq!(graph.center, "0xcenter");
+        assert_eq!(graph.total_nodes, 1);
+        assert_eq!(graph.total_edges, 1);
+    }
 }

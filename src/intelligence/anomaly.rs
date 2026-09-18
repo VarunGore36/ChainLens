@@ -338,4 +338,62 @@ mod tests {
         assert!(severity_order(&Severity::High) > severity_order(&Severity::Medium));
         assert!(severity_order(&Severity::Medium) > severity_order(&Severity::Low));
     }
+
+    #[test]
+    fn anomaly_creation() {
+        let anomaly = Anomaly {
+            id: 1,
+            anomaly_type: AnomalyType::LargeTransfer,
+            severity: Severity::High,
+            detected_at: "2024-01-01T00:00:00Z".to_string(),
+            entity: "0x1234".to_string(),
+            entity_type: "address".to_string(),
+            description: "Large transfer detected".to_string(),
+            observed_value: 1000000.0,
+            baseline_value: 1000.0,
+            threshold: 5000.0,
+            evidence: vec!["tx_hash: 0xabc".to_string()],
+            block_number: Some(12345),
+            tx_hash: Some("0xabc".to_string()),
+        };
+        assert_eq!(anomaly.severity, Severity::High);
+        assert_eq!(anomaly.observed_value, 1000000.0);
+    }
+
+    #[test]
+    fn anomaly_serialization() {
+        let anomaly = Anomaly {
+            id: 1,
+            anomaly_type: AnomalyType::ActivitySpike,
+            severity: Severity::Medium,
+            detected_at: "2024-01-01".to_string(),
+            entity: "0xabcd".to_string(),
+            entity_type: "block".to_string(),
+            description: "test".to_string(),
+            observed_value: 100.0,
+            baseline_value: 50.0,
+            threshold: 75.0,
+            evidence: vec![],
+            block_number: None,
+            tx_hash: None,
+        };
+        let json = serde_json::to_string(&anomaly).unwrap();
+        assert!(json.contains("activity_spike"));
+        assert!(json.contains("medium"));
+    }
+
+    #[test]
+    fn all_anomaly_types_serialize() {
+        let types = vec![
+            AnomalyType::LargeTransfer,
+            AnomalyType::ActivitySpike,
+            AnomalyType::NewWalletHighValue,
+            AnomalyType::ContractInteractionSpike,
+            AnomalyType::CoordinatedActivity,
+        ];
+        for at in types {
+            let json = serde_json::to_string(&at).unwrap();
+            assert!(!json.is_empty());
+        }
+    }
 }

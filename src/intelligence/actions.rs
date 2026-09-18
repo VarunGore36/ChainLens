@@ -347,4 +347,58 @@ mod tests {
         let json = serde_json::to_string(&action).unwrap();
         assert!(json.contains("erc20_transfer"));
     }
+
+    #[test]
+    fn all_action_types_serialize() {
+        let types = vec![
+            ActionType::EthTransfer,
+            ActionType::Erc20Transfer,
+            ActionType::Erc20Approval,
+            ActionType::Erc721Transfer,
+            ActionType::Erc1155Transfer,
+            ActionType::ContractCreation,
+            ActionType::ContractCall,
+            ActionType::Swap,
+            ActionType::Unknown,
+        ];
+        for at in types {
+            let json = serde_json::to_string(&at).unwrap();
+            assert!(!json.is_empty());
+        }
+    }
+
+    #[test]
+    fn explanation_serialization() {
+        let explanation = TransactionExplanation {
+            tx_hash: "0xabc".to_string(),
+            block_number: 12345,
+            timestamp: "2024-01-01T00:00:00Z".to_string(),
+            from: "0x1111".to_string(),
+            to: Some("0x2222".to_string()),
+            value_wei: "1000000000000000000".to_string(),
+            value_eth: "1.000000".to_string(),
+            gas_used: 21000,
+            gas_price: Some("20000000000".to_string()),
+            effective_gas_price: Some("20000000000".to_string()),
+            tx_fee: "0.000420".to_string(),
+            status: "success".to_string(),
+            actions: vec![],
+            contracts_involved: vec![],
+            summary: "test".to_string(),
+        };
+        let json = serde_json::to_string(&explanation).unwrap();
+        assert!(json.contains("0xabc"));
+        assert!(json.contains("1.000000"));
+    }
+
+    #[test]
+    fn zero_gas_price_fee() {
+        assert_eq!(calculate_tx_fee(21000, Some("0")), "0.000000");
+    }
+
+    #[test]
+    fn large_gas_fee() {
+        let fee = calculate_tx_fee(30000000, Some("100000000000"));
+        assert_eq!(fee, "3.000000");
+    }
 }

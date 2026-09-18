@@ -380,4 +380,76 @@ mod tests {
         assert_eq!(analytics.block_number, 12345);
         assert_eq!(analytics.tx_count, 100);
     }
+
+    #[test]
+    fn all_mev_types_serialize() {
+        let types = vec![
+            MevType::PossibleSandwich,
+            MevType::PossibleArbitrage,
+            MevType::PossibleLiquidation,
+            MevType::PriorityFeeAnomaly,
+            MevType::RepeatedProtocolInteraction,
+        ];
+        for mt in types {
+            let json = serde_json::to_string(&mt).unwrap();
+            assert!(!json.is_empty());
+        }
+    }
+
+    #[test]
+    fn mev_event_creation() {
+        let event = MevEvent {
+            id: 1,
+            mev_type: MevType::PossibleSandwich,
+            severity: "high".to_string(),
+            block_number: 18000000,
+            timestamp: "2024-01-01T00:00:00Z".to_string(),
+            description: "Possible sandwich detected".to_string(),
+            involved_addresses: vec!["0x1111".to_string()],
+            involved_transactions: vec!["0xabc".to_string(), "0xdef".to_string()],
+            estimated_value: Some("1000000000000000000".to_string()),
+            confidence: 0.75,
+        };
+        assert_eq!(event.mev_type, MevType::PossibleSandwich);
+        assert_eq!(event.confidence, 0.75);
+    }
+
+    #[test]
+    fn mev_event_serialization() {
+        let event = MevEvent {
+            id: 1,
+            mev_type: MevType::PossibleArbitrage,
+            severity: "medium".to_string(),
+            block_number: 12345,
+            timestamp: "2024-01-01".to_string(),
+            description: "test".to_string(),
+            involved_addresses: vec![],
+            involved_transactions: vec![],
+            estimated_value: None,
+            confidence: 0.5,
+        };
+        let json = serde_json::to_string(&event).unwrap();
+        assert!(json.contains("possible_arbitrage"));
+        assert!(json.contains("medium"));
+    }
+
+    #[test]
+    fn block_analytics_serialization() {
+        let analytics = BlockAnalytics {
+            block_number: 999,
+            timestamp: "2024-01-01".to_string(),
+            tx_count: 50,
+            gas_used: 10000000,
+            gas_limit: 30000000,
+            base_fee: None,
+            total_priority_fees: "0".to_string(),
+            avg_priority_fee: "0".to_string(),
+            max_priority_fee: "0".to_string(),
+            mev_events: vec![],
+            unusual_transactions: vec![],
+        };
+        let json = serde_json::to_string(&analytics).unwrap();
+        assert!(json.contains("999"));
+        assert!(json.contains("50"));
+    }
 }
