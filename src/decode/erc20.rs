@@ -1,21 +1,25 @@
 use alloy_primitives::{Address, B256, U256};
 
 use super::DecodeError;
-use crate::domain::token_transfer::TRANSFER_TOPIC;
+use crate::domain::token_transfer::{
+    ERC1155_TRANSFER_BATCH_TOPIC, ERC1155_TRANSFER_SINGLE_TOPIC, TRANSFER_TOPIC,
+};
 use crate::domain::{Log, TokenStandard, TokenTransfer};
 
 pub fn decode_token_transfers(logs: &[Log]) -> Result<Vec<TokenTransfer>, DecodeError> {
     let mut transfers = Vec::new();
 
     for log in logs {
-        if log.topic0 != Some(TRANSFER_TOPIC) {
-            continue;
-        }
-
-        match log.topics().len() {
-            3 => transfers.push(decode_erc20_transfer(log)?),
-            4 => transfers.push(decode_erc721_transfer(log)?),
-            _ => continue,
+        if log.topic0 == Some(TRANSFER_TOPIC) {
+            match log.topics().len() {
+                3 => transfers.push(decode_erc20_transfer(log)?),
+                4 => transfers.push(decode_erc721_transfer(log)?),
+                _ => continue,
+            }
+        } else if log.topic0 == Some(ERC1155_TRANSFER_SINGLE_TOPIC) {
+            transfers.push(decode_erc1155_single(log)?);
+        } else if log.topic0 == Some(ERC1155_TRANSFER_BATCH_TOPIC) {
+            transfers.extend(decode_erc1155_batch(log)?);
         }
     }
 
@@ -81,6 +85,93 @@ fn extract_address_from_topic(
     })?;
 
     Ok(Address::from_slice(&bytes[12..32]))
+}
+
+fn decode_erc1155_single(log: &Log) -> Result<TokenTransfer, DecodeError> {
+    let from = extract_address_from_topic(log.topic2, log.log_index, 2)?;
+    let to = extract_address_from_topic(log.topic3, log.log_index, 3)?;
+
+    let data = &log.data;
+    if data.len() < 64 {
+        return Err(DecodeError::InvalidErc20DataLength {
+            log_index: log.log_index,
+            length: data.len(),
+        });
+    }
+
+    let token_id = U256::from_be_slice(&data[0..32]);
+    let value = U256::from_be_slice(&data[32..64]);
+
+    Ok(TokenTransfer {
+        block_number: log.block_number,
+        log_index: log.log_index,
+        token_address: log.address,
+        from,
+        to,
+        value,
+        token_id,
+        standard: TokenStandard::Erc1155,
+    })
+}
+
+fn decode_erc1155_batch(log: &Log) -> Result<Vec<TokenTransfer>, DecodeError> {
+    let from = extract_address_from_topic(log.topic2, log.log_index, 2)?;
+    let to = extract_address_from_topic(log.topic3, log.log_index, 3)?;
+
+    let data = &log.data;
+    if data.len() < 128 {
+        return Err(DecodeError::InvalidErc20DataLength {
+            log_index: log.log_index,
+            length: data.len(),
+        });
+    }
+
+    let ids_offset = U256::from_be_slice(&data[0..32]).to::<usize>();
+    let values_offset = U256::from_be_slice(&data[32..64]).to::<usize>();
+
+    if data.len() < ids_offset + 32 || data.len() < values_offset + 32 {
+        return Err(DecodeError::InvalidErc20DataLength {
+            log_index: log.log_index,
+            length: data.len(),
+        });
+    }
+
+    let ids_len = U256::from_be_slice(&data[ids_offset..ids_offset + 32]).to::<usize>();
+    let values_len = U256::from_be_slice(&data[values_offset..values_offset + 32]).to::<usize>();
+
+    if ids_len != values_len {
+        return Err(DecodeError::InvalidErc20DataLength {
+            log_index: log.log_index,
+            length: data.len(),
+        });
+    }
+
+    let mut transfers = Vec::with_capacity(ids_len);
+
+    for i in 0..ids_len {
+        let id_pos = ids_offset + 32 + (i * 32);
+        let val_pos = values_offset + 32 + (i * 32);
+
+        if id_pos + 32 > data.len() || val_pos + 32 > data.len() {
+            break;
+        }
+
+        let token_id = U256::from_be_slice(&data[id_pos..id_pos + 32]);
+        let value = U256::from_be_slice(&data[val_pos..val_pos + 32]);
+
+        transfers.push(TokenTransfer {
+            block_number: log.block_number,
+            log_index: log.log_index,
+            token_address: log.address,
+            from,
+            to,
+            value,
+            token_id,
+            standard: TokenStandard::Erc1155,
+        });
+    }
+
+    Ok(transfers)
 }
 
 impl Log {
@@ -407,5 +498,112 @@ mod tests {
         let as_topic = address_to_topic(original);
         let extracted = extract_address_from_topic(Some(as_topic), 0, 1).unwrap();
         assert_eq!(original, extracted);
+    }
+
+    fn make_erc1155_single_log(
+        log_index: u32,
+        from: Address,
+        to: Address,
+        token_id: U256,
+        value: U256,
+    ) -> Log {
+        let mut data = [0u8; 64];
+        data[0..32].copy_from_slice(&token_id.to_be_bytes_vec());
+        let val_bytes = value.to_be_bytes_vec();
+        let start = 64usize.saturating_sub(val_bytes.len());
+        data[start..].copy_from_slice(&val_bytes);
+
+        Log {
+            block_number: 1,
+            log_index,
+            tx_hash: B256::ZERO,
+            address: Address::with_last_byte(0x44),
+            topic0: Some(ERC1155_TRANSFER_SINGLE_TOPIC),
+            topic1: Some(B256::ZERO),
+            topic2: Some(address_to_topic(from)),
+            topic3: Some(address_to_topic(to)),
+            data: Bytes::from(data.to_vec()),
+        }
+    }
+
+    #[test]
+    fn decodes_erc1155_single_transfer() {
+        let from = Address::with_last_byte(0x01);
+        let to = Address::with_last_byte(0x02);
+        let token_id = U256::from(42u64);
+        let value = U256::from(10u64);
+
+        let log = make_erc1155_single_log(0, from, to, token_id, value);
+        let transfers = decode_token_transfers(&[log]).unwrap();
+        assert_eq!(transfers.len(), 1);
+
+        let t = &transfers[0];
+        assert_eq!(t.standard, TokenStandard::Erc1155);
+        assert_eq!(t.from, from);
+        assert_eq!(t.to, to);
+        assert_eq!(t.token_id, token_id);
+        assert_eq!(t.value, value);
+    }
+
+    #[test]
+    fn decodes_erc1155_batch_transfer() {
+        let from = Address::with_last_byte(0x01);
+        let to = Address::with_last_byte(0x02);
+
+        let mut data = vec![0u8; 256];
+
+        let ids_offset = 64usize;
+        let values_offset = 160usize;
+
+        data[24..32].copy_from_slice(&ids_offset.to_be_bytes());
+        data[56..64].copy_from_slice(&values_offset.to_be_bytes());
+
+        data[88..96].copy_from_slice(&2u64.to_be_bytes());
+        data[120..128].copy_from_slice(&100u64.to_be_bytes());
+        data[152..160].copy_from_slice(&200u64.to_be_bytes());
+
+        data[184..192].copy_from_slice(&2u64.to_be_bytes());
+        data[216..224].copy_from_slice(&5u64.to_be_bytes());
+        data[248..256].copy_from_slice(&10u64.to_be_bytes());
+
+        let log = Log {
+            block_number: 1,
+            log_index: 0,
+            tx_hash: B256::ZERO,
+            address: Address::with_last_byte(0x44),
+            topic0: Some(ERC1155_TRANSFER_BATCH_TOPIC),
+            topic1: Some(B256::ZERO),
+            topic2: Some(address_to_topic(from)),
+            topic3: Some(address_to_topic(to)),
+            data: Bytes::from(data),
+        };
+
+        let transfers = decode_token_transfers(&[log]).unwrap();
+        assert_eq!(transfers.len(), 2);
+        assert_eq!(transfers[0].standard, TokenStandard::Erc1155);
+        assert_eq!(transfers[0].token_id, U256::from(100u64));
+        assert_eq!(transfers[0].value, U256::from(5u64));
+        assert_eq!(transfers[1].token_id, U256::from(200u64));
+        assert_eq!(transfers[1].value, U256::from(10u64));
+    }
+
+    #[test]
+    fn erc1155_single_short_data_rejected() {
+        let log = Log {
+            block_number: 1,
+            log_index: 0,
+            tx_hash: B256::ZERO,
+            address: Address::with_last_byte(0x44),
+            topic0: Some(ERC1155_TRANSFER_SINGLE_TOPIC),
+            topic1: Some(B256::ZERO),
+            topic2: Some(address_to_topic(Address::ZERO)),
+            topic3: Some(address_to_topic(Address::ZERO)),
+            data: Bytes::from(vec![0u8; 32]),
+        };
+        let result = decode_token_transfers(&[log]);
+        assert!(matches!(
+            result,
+            Err(DecodeError::InvalidErc20DataLength { length: 32, .. })
+        ));
     }
 }

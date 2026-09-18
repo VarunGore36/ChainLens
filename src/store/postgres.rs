@@ -176,6 +176,7 @@ async fn insert_token_transfers(
         .bind(match t.standard {
             TokenStandard::Erc20 => 0i16,
             TokenStandard::Erc721 => 1i16,
+            TokenStandard::Erc1155 => 2i16,
         })
         .execute(&mut **tx)
         .await
