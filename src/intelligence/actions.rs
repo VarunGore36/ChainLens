@@ -150,6 +150,196 @@ pub async fn explain_transaction(
                     });
                 }
             }
+            // Uniswap V2 swapExactTokensForTokens
+            "38ed1739" => {
+                actions.push(TransactionAction {
+                    action_type: ActionType::Swap,
+                    from: from_addr.clone(),
+                    to: to_addr.clone(),
+                    value: None,
+                    token_address: to_addr.clone(),
+                    token_symbol: None,
+                    amount: None,
+                    spender: None,
+                    description: "Swapped tokens (Uniswap V2)".to_string(),
+                });
+            }
+            // Uniswap V2 swapTokensForExactTokens
+            "8803dbee" => {
+                actions.push(TransactionAction {
+                    action_type: ActionType::Swap,
+                    from: from_addr.clone(),
+                    to: to_addr.clone(),
+                    value: None,
+                    token_address: to_addr.clone(),
+                    token_symbol: None,
+                    amount: None,
+                    spender: None,
+                    description: "Swapped tokens for exact output (Uniswap V2)".to_string(),
+                });
+            }
+            // Uniswap V2 swapExactETHForTokens
+            "7ff36ab5" => {
+                actions.push(TransactionAction {
+                    action_type: ActionType::Swap,
+                    from: from_addr.clone(),
+                    to: to_addr.clone(),
+                    value: Some(value_eth.clone()),
+                    token_address: to_addr.clone(),
+                    token_symbol: None,
+                    amount: None,
+                    spender: None,
+                    description: format!("Swapped {} ETH for tokens (Uniswap V2)", value_eth),
+                });
+            }
+            // Uniswap V2 swapTokensForExactETH
+            "4a25d94a" => {
+                actions.push(TransactionAction {
+                    action_type: ActionType::Swap,
+                    from: from_addr.clone(),
+                    to: to_addr.clone(),
+                    value: None,
+                    token_address: to_addr.clone(),
+                    token_symbol: None,
+                    amount: None,
+                    spender: None,
+                    description: "Swapped tokens for exact ETH (Uniswap V2)".to_string(),
+                });
+            }
+            // Uniswap V2 swapExactTokensForETH
+            "18cbafe5" => {
+                actions.push(TransactionAction {
+                    action_type: ActionType::Swap,
+                    from: from_addr.clone(),
+                    to: to_addr.clone(),
+                    value: None,
+                    token_address: to_addr.clone(),
+                    token_symbol: None,
+                    amount: None,
+                    spender: None,
+                    description: "Swapped tokens for ETH (Uniswap V2)".to_string(),
+                });
+            }
+            // Uniswap V3 exactInputSingle
+            "414bf389" => {
+                actions.push(TransactionAction {
+                    action_type: ActionType::Swap,
+                    from: from_addr.clone(),
+                    to: to_addr.clone(),
+                    value: None,
+                    token_address: to_addr.clone(),
+                    token_symbol: None,
+                    amount: None,
+                    spender: None,
+                    description: "Swapped tokens (Uniswap V3)".to_string(),
+                });
+            }
+            // Uniswap V3 exactInput
+            "c04b8d59" => {
+                actions.push(TransactionAction {
+                    action_type: ActionType::Swap,
+                    from: from_addr.clone(),
+                    to: to_addr.clone(),
+                    value: None,
+                    token_address: to_addr.clone(),
+                    token_symbol: None,
+                    amount: None,
+                    spender: None,
+                    description: "Swapped tokens via path (Uniswap V3)".to_string(),
+                });
+            }
+            // Uniswap V3 exactOutputSingle
+            "db3e2198" => {
+                actions.push(TransactionAction {
+                    action_type: ActionType::Swap,
+                    from: from_addr.clone(),
+                    to: to_addr.clone(),
+                    value: None,
+                    token_address: to_addr.clone(),
+                    token_symbol: None,
+                    amount: None,
+                    spender: None,
+                    description: "Swapped tokens for exact output (Uniswap V3)".to_string(),
+                });
+            }
+            // 1inch swap
+            "12aa3caf" => {
+                actions.push(TransactionAction {
+                    action_type: ActionType::Swap,
+                    from: from_addr.clone(),
+                    to: to_addr.clone(),
+                    value: None,
+                    token_address: to_addr.clone(),
+                    token_symbol: None,
+                    amount: None,
+                    spender: None,
+                    description: "Swapped tokens (1inch)".to_string(),
+                });
+            }
+            // WETH deposit
+            "d0e30db0" => {
+                actions.push(TransactionAction {
+                    action_type: ActionType::Swap,
+                    from: from_addr.clone(),
+                    to: to_addr.clone(),
+                    value: Some(value_eth.clone()),
+                    token_address: to_addr.clone(),
+                    token_symbol: None,
+                    amount: None,
+                    spender: None,
+                    description: format!("Wrapped {} ETH to WETH", value_eth),
+                });
+            }
+            // WETH withdrawal
+            "2e1a7d4d" => {
+                if input.len() >= 36 {
+                    let amount_bytes = &input[4..36];
+                    let amount = U256::from_be_slice(amount_bytes);
+                    actions.push(TransactionAction {
+                        action_type: ActionType::Swap,
+                        from: from_addr.clone(),
+                        to: to_addr.clone(),
+                        value: None,
+                        token_address: to_addr.clone(),
+                        token_symbol: None,
+                        amount: Some(amount.to_string()),
+                        spender: None,
+                        description: format!("Unwrapped {} WETH to ETH", amount),
+                    });
+                }
+            }
+            // Aave deposit
+            "e8eda6df" => {
+                actions.push(TransactionAction {
+                    action_type: ActionType::ContractCall,
+                    from: from_addr.clone(),
+                    to: to_addr.clone(),
+                    value: Some(value_eth.clone()),
+                    token_address: to_addr.clone(),
+                    token_symbol: None,
+                    amount: None,
+                    spender: None,
+                    description: format!("Deposited {} to Aave", value_eth),
+                });
+            }
+            // Compound mint
+            "a0712d68" => {
+                if input.len() >= 36 {
+                    let amount_bytes = &input[4..36];
+                    let amount = U256::from_be_slice(amount_bytes);
+                    actions.push(TransactionAction {
+                        action_type: ActionType::ContractCall,
+                        from: from_addr.clone(),
+                        to: to_addr.clone(),
+                        value: None,
+                        token_address: to_addr.clone(),
+                        token_symbol: None,
+                        amount: Some(amount.to_string()),
+                        spender: None,
+                        description: format!("Supplied {} to Compound", amount),
+                    });
+                }
+            }
             _ => {
                 if value_str != "0" {
                     actions.push(TransactionAction {
