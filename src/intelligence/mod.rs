@@ -1,6 +1,7 @@
 pub mod actions;
 pub mod address;
 pub mod anomaly;
+pub mod cache;
 pub mod contract;
 pub mod events;
 pub mod graph;
