@@ -4,6 +4,7 @@ pub mod anomaly;
 pub mod contract;
 pub mod events;
 pub mod graph;
+pub mod interfaces;
 pub mod mev;
 pub mod persist;
 
