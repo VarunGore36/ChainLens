@@ -1,6 +1,7 @@
 use std::time::Duration;
 
 use anyhow::Context;
+use chainlens::intelligence::background::BackgroundProcessor;
 use chainlens::metrics;
 use chainlens::pipeline::{committer, head_watcher, sequencer, worker};
 use chainlens::rpc::EthClient;
@@ -59,6 +60,9 @@ async fn main() -> anyhow::Result<()> {
         .await
         .context("failed to run database migrations")?;
     tracing::info!("migrations applied");
+
+    let intelligence_processor = BackgroundProcessor::new(store.clone(), shutdown.clone());
+    tracing::info!("intelligence background processor started");
 
     let rpc_config = HttpRpcConfig {
         url: config.rpc_url.expose().to_string(),
@@ -185,6 +189,10 @@ async fn main() -> anyhow::Result<()> {
                     blocks_indexed += 1;
                     cursor = block_number;
 
+                    intelligence_processor
+                        .notify_block_committed(block_number)
+                        .await;
+
                     let lag = head.latest.saturating_sub(cursor);
                     metrics::set_indexing_lag(lag);
 
@@ -206,6 +214,9 @@ async fn main() -> anyhow::Result<()> {
         let _ = worker_handle.await;
         let _ = seq_handle.await;
     }
+
+    intelligence_processor.shutdown().await;
+    tracing::info!("intelligence processor shut down");
 
     tracing::info!("closing the connection pool");
     pool.close().await;

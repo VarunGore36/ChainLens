@@ -22,6 +22,7 @@ ChainLens indexes Ethereum and turns raw blockchain data into explainable intell
 - **Contract Intelligence** — deployment info, unique callers, function selectors, interface detection
 - **Event Signature Decoding** — 25+ known events (Transfer, Swap, Mint, Borrow, Liquidation, VoteCast, etc.)
 - **Interface Detection** — ERC-20/721/1155, Uniswap V2/V3, WETH, Aave, Compound, Ownable, Proxy
+- **Background Processing** — intelligence computed incrementally as blocks are indexed, not on API calls
 
 ## Performance
 
@@ -73,7 +74,7 @@ Ethereum RPC → Head Watcher → Scheduler → Workers (N) → Sequencer → Co
                                                       ↑                     │
                                                       └── Reorg Handler ←──┘
                                                                   │
-                                                         Intelligence Engine
+                                                    Background Intelligence Processor
                                                                   │
                                           ┌───────────────────────┼───────────────────────┐
                                           │                       │                       │
@@ -90,6 +91,7 @@ Ethereum RPC → Head Watcher → Scheduler → Workers (N) → Sequencer → Co
 - **Natural primary keys** — idempotent writes, no sequences
 - **Hard-delete on reorg** — clean read paths, intelligence data also cleaned
 - **Bounded channels** — structural backpressure, no OOM
+- **Background processing** — intelligence computed incrementally, not on API calls
 - **Deterministic intelligence** — no LLM/API dependency, evidence-backed results
 
 ## Decoding coverage
@@ -150,6 +152,7 @@ src/
 │   ├── actions.rs    Transaction action decoding
 │   ├── address.rs    Address intelligence
 │   ├── anomaly.rs    Anomaly detection
+│   ├── background.rs Background processor
 │   ├── cache.rs      LRU cache with TTL
 │   ├── contract.rs   Contract intelligence
 │   ├── events.rs     Event signature decoding
