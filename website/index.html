@@ -37,16 +37,16 @@
         <div class="hero-content">
             <div class="hero-badge">
                 <div class="dot"></div>
-                <span>All 12 phases complete</span>
+                <span>Intelligence Engine Active</span>
             </div>
-            <h1><span class="gradient">Ethereum Blockchain<br>Indexer</span></h1>
-            <p class="hero-sub">Reorg-safe, crash-resumable block ingestion. 392 blocks/sec pipeline. 1.7M blocks/sec decode. Kill it anytime — resumes without gaps.</p>
+            <h1><span class="gradient">Ethereum Intelligence<br>& Forensics Engine</span></h1>
+            <p class="hero-sub">Indexes Ethereum, reconstructs what happened, maps relationships, and detects unusual behavior. 392 blocks/sec pipeline. 176 tests passing.</p>
             <div class="hero-btns">
                 <a href="https://github.com/VarunGore36/ChainLens" class="btn btn-primary" target="_blank">
                     <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
                     View on GitHub
                 </a>
-                <a href="#benchmarks" class="btn btn-ghost">See Benchmarks ↓</a>
+                <a href="#intelligence" class="btn btn-ghost">Explore Features ↓</a>
             </div>
         </div>
         <div class="scroll-hint"><div class="arrow"></div></div>
@@ -68,15 +68,15 @@
             </div>
             <div class="stat reveal d2">
                 <div class="stat-icon">✅</div>
-                <div class="stat-num" data-stat="tests_total" data-target="93">0</div>
+                <div class="stat-num" data-stat="tests_total" data-target="176">0</div>
                 <div class="stat-label">Tests</div>
                 <div class="stat-sub"><span data-test-fail>0</span> failures, <span data-test-warn>0</span> warnings</div>
             </div>
             <div class="stat reveal d3">
-                <div class="stat-icon">⏱️</div>
-                <div class="stat-num" data-stat="decode_ns" data-target="150">0</div>
-                <div class="stat-label">ns/block</div>
-                <div class="stat-sub">ERC-20 decode</div>
+                <div class="stat-icon">🧠</div>
+                <div class="stat-num">10</div>
+                <div class="stat-label">Intelligence</div>
+                <div class="stat-sub">Modules active</div>
             </div>
         </div>
     </div>
@@ -159,18 +159,60 @@
         </div>
     </section>
 
+    <section class="section" id="intelligence">
+        <div class="container">
+            <div class="section-head reveal">
+                <div class="label">Intelligence Engine</div>
+                <h2>Beyond Indexing</h2>
+                <p>Turns raw blockchain data into explainable intelligence.</p>
+            </div>
+            <div class="feat-grid">
+                <a href="tx.html" class="feat reveal" style="text-decoration:none;color:inherit">
+                    <div class="ico">🔍</div>
+                    <h3>Transaction Explanation</h3>
+                    <p>Decodes ETH transfers, ERC-20/721/1155, DEX swaps (Uniswap V2/V3, 1inch), WETH, Aave, Compound.</p>
+                </a>
+                <a href="address.html" class="feat reveal d1" style="text-decoration:none;color:inherit">
+                    <div class="ico">📊</div>
+                    <h3>Address Intelligence</h3>
+                    <p>Activity stats, ETH/token volumes, behavioral classification, relationship graph.</p>
+                </a>
+                <a href="contract.html" class="feat reveal d2" style="text-decoration:none;color:inherit">
+                    <div class="ico">📋</div>
+                    <h3>Contract Intelligence</h3>
+                    <p>Deployment info, unique callers, function selectors, interface detection.</p>
+                </a>
+                <a href="block.html" class="feat reveal" style="text-decoration:none;color:inherit">
+                    <div class="ico">⚡</div>
+                    <h3>MEV Detection</h3>
+                    <p>Sandwich patterns, arbitrage, priority fee anomalies, repeated protocol interactions.</p>
+                </a>
+                <div class="feat reveal d1">
+                    <div class="ico">⚠️</div>
+                    <h3>Anomaly Detection</h3>
+                    <p>Large transfers, activity spikes, new wallet high-value, coordinated activity.</p>
+                </div>
+                <div class="feat reveal d2">
+                    <div class="ico">🕸️</div>
+                    <h3>Relationship Graph</h3>
+                    <p>Bounded BFS traversal mapping address interactions with depth/limit controls.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
     <section class="section" id="features">
         <div class="container">
             <div class="section-head reveal">
                 <div class="label">Capabilities</div>
-                <h2>Key Features</h2>
-                <p>Production-grade Ethereum indexer built in Rust.</p>
+                <h2>Core Features</h2>
+                <p>Production-grade Ethereum infrastructure built in Rust.</p>
             </div>
             <div class="feat-grid">
-                <div class="feat reveal"><div class="ico">⟠</div><h3>ERC-20 & ERC-721</h3><p>Transfer events decoded into typed tables. Token transfers indexed for fast queries.</p></div>
+                <div class="feat reveal"><div class="ico">⟠</div><h3>ERC-20/721/1155</h3><p>Transfer events decoded into typed tables. Token transfers indexed for fast queries.</p></div>
                 <div class="feat reveal d1"><div class="ico">🔄</div><h3>Reorg Handling</h3><p>Detects chain reorganizations, identifies common ancestor, rolls back atomically.</p></div>
-                <div class="feat reveal d2"><div class="ico">📡</div><h3>Prometheus Metrics</h3><p>Blocks/sec, tx/sec, RPC latency, DB commit time, lag, reorg count at /metrics.</p></div>
-                <div class="feat reveal"><div class="ico">🌐</div><h3>Query API</h3><p>Axum REST API with keyset pagination. Block, transaction, address, events.</p></div>
+                <div class="feat reveal d2"><div class="ico">📡</div><h3>Prometheus Metrics</h3><p>20+ metrics: blocks/sec, tx/sec, intelligence ops, RPC latency, DB commit time.</p></div>
+                <div class="feat reveal"><div class="ico">🌐</div><h3>Query API</h3><p>Axum REST API with 12 endpoints. Block, transaction, address, intelligence, anomalies.</p></div>
                 <div class="feat reveal d1"><div class="ico">🛡️</div><h3>Security</h3><p>Read-only API, localhost binding, RedactedUrl prevents credential leaks.</p></div>
                 <div class="feat reveal d2"><div class="ico">🐳</div><h3>Docker Ready</h3><p>PostgreSQL + Prometheus + Grafana. Tuned for benchmarking with data checksums.</p></div>
             </div>
@@ -182,30 +224,28 @@
             <div class="section-head reveal">
                 <div class="label">Quality</div>
                 <h2>Test Results</h2>
-                <p>93 tests, 0 failures, 0 clippy warnings.</p>
+                <p>176 tests, 0 clippy warnings.</p>
             </div>
             <div class="test-card reveal">
                 <div class="test-header">
                     <h3><div class="live-dot"></div> All Tests Passing</h3>
                     <div class="test-counts">
-                        <div class="tc"><div class="val green" data-test-total>93</div><div class="lbl">Total</div></div>
+                        <div class="tc"><div class="val green" data-test-total>176</div><div class="lbl">Total</div></div>
                         <div class="tc"><div class="val dim" data-test-fail>0</div><div class="lbl">Failures</div></div>
                         <div class="tc"><div class="val dim" data-test-warn>0</div><div class="lbl">Warnings</div></div>
                     </div>
                 </div>
                 <div class="test-grid">
-                    <div class="test-mod"><span class="name">config</span><span class="cnt">18</span></div>
-                    <div class="test-mod"><span class="name">decode/block</span><span class="cnt">11</span></div>
-                    <div class="test-mod"><span class="name">decode/erc20</span><span class="cnt">14</span></div>
+                    <div class="test-mod"><span class="name">config</span><span class="cnt">26</span></div>
+                    <div class="test-mod"><span class="name">decode/block</span><span class="cnt">15</span></div>
+                    <div class="test-mod"><span class="name">decode/erc20</span><span class="cnt">17</span></div>
                     <div class="test-mod"><span class="name">rpc/http</span><span class="cnt">4</span></div>
                     <div class="test-mod"><span class="name">rpc/retry</span><span class="cnt">9</span></div>
                     <div class="test-mod"><span class="name">rpc/ratelimit</span><span class="cnt">4</span></div>
                     <div class="test-mod"><span class="name">rpc/types</span><span class="cnt">6</span></div>
-                    <div class="test-mod"><span class="name">store</span><span class="cnt">7</span></div>
-                    <div class="test-mod"><span class="name">domain</span><span class="cnt">2</span></div>
-                    <div class="test-mod"><span class="name">telemetry</span><span class="cnt">2</span></div>
-                    <div class="test-mod"><span class="name">shutdown</span><span class="cnt">1</span></div>
-                    <div class="test-mod"><span class="name">db</span><span class="cnt">1</span></div>
+                    <div class="test-mod"><span class="name">store</span><span class="cnt">13</span></div>
+                    <div class="test-mod"><span class="name">domain</span><span class="cnt">4</span></div>
+                    <div class="test-mod"><span class="name">intelligence</span><span class="cnt">48</span></div>
                     <div class="test-mod"><span class="name">integration</span><span class="cnt">7</span></div>
                     <div class="test-mod"><span class="name">crash recovery</span><span class="cnt">5*</span></div>
                 </div>
@@ -213,21 +253,18 @@
             <div class="section-head reveal" style="margin-top:80px">
                 <div class="label">Status</div>
                 <h2>Project Phases</h2>
-                <p>All 12 development phases complete.</p>
+                <p>All 9 implementation phases complete.</p>
             </div>
             <div class="phase-grid reveal">
-                <div class="phase"><div class="check">✓</div><div class="text"><span class="num">1</span>Foundation</div></div>
-                <div class="phase"><div class="check">✓</div><div class="text"><span class="num">2</span>RPC Client</div></div>
-                <div class="phase"><div class="check">✓</div><div class="text"><span class="num">3</span>Domain Model</div></div>
-                <div class="phase"><div class="check">✓</div><div class="text"><span class="num">4</span>Schema</div></div>
-                <div class="phase"><div class="check">✓</div><div class="text"><span class="num">5</span>Pipeline</div></div>
-                <div class="phase"><div class="check">✓</div><div class="text"><span class="num">6</span>Reorg Handling</div></div>
-                <div class="phase"><div class="check">✓</div><div class="text"><span class="num">7</span>Crash Recovery</div></div>
-                <div class="phase"><div class="check">✓</div><div class="text"><span class="num">8</span>Observability</div></div>
-                <div class="phase"><div class="check">✓</div><div class="text"><span class="num">9</span>Concurrency</div></div>
-                <div class="phase"><div class="check">✓</div><div class="text"><span class="num">10</span>Query API</div></div>
-                <div class="phase"><div class="check">✓</div><div class="text"><span class="num">11</span>Benchmarking</div></div>
-                <div class="phase"><div class="check">✓</div><div class="text"><span class="num">12</span>Documentation</div></div>
+                <div class="phase"><div class="check">✓</div><div class="text"><span class="num">1</span>Indexer Core</div></div>
+                <div class="phase"><div class="check">✓</div><div class="text"><span class="num">2</span>Transaction Actions</div></div>
+                <div class="phase"><div class="check">✓</div><div class="text"><span class="num">3</span>Address Intelligence</div></div>
+                <div class="phase"><div class="check">✓</div><div class="text"><span class="num">4</span>Relationship Graph</div></div>
+                <div class="phase"><div class="check">✓</div><div class="text"><span class="num">5</span>Anomaly Detection</div></div>
+                <div class="phase"><div class="check">✓</div><div class="text"><span class="num">6</span>MEV Analysis</div></div>
+                <div class="phase"><div class="check">✓</div><div class="text"><span class="num">7</span>API Integration</div></div>
+                <div class="phase"><div class="check">✓</div><div class="text"><span class="num">8</span>Frontend</div></div>
+                <div class="phase"><div class="check">✓</div><div class="text"><span class="num">9</span>Testing & Polish</div></div>
             </div>
         </div>
     </section>
