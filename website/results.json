@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-09-18T17:27:35Z",
-  "commit": "2caf7f0",
+  "generated_at": "2026-09-18T17:45:14Z",
+  "commit": "a7687c2",
   "branch": "main",
   "version": "0.1.0",
   "tests": {
@@ -8,17 +8,7 @@
     "passed": 176,
     "failed": 4,
     "clippy_warnings": 0,
-    "modules": {
-      "config": 26,
-      "decode_block": 15,
-      "decode_erc20": 17,
-      "rpc": 23,
-      "store": 13,
-      "domain": 4,
-      "intelligence": 48,
-      "integration": 7,
-      "crash_recovery": 5
-    }
+    "modules": {}
   },
   "pipeline_throughput": {
     "blocks_per_sec": 392,
