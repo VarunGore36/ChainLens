@@ -45,6 +45,7 @@ pub async fn detect_anomalies(pool: &PgPool) -> Result<Vec<Anomaly>, sqlx::Error
     anomalies.extend(detect_activity_spikes(pool).await?);
     anomalies.extend(detect_new_wallet_high_value(pool).await?);
     anomalies.extend(detect_contract_interaction_spikes(pool).await?);
+    anomalies.extend(detect_coordinated_activity(pool).await?);
 
     anomalies.sort_by_key(|a| std::cmp::Reverse(severity_order(&a.severity)));
 
@@ -294,6 +295,80 @@ async fn detect_contract_interaction_spikes(pool: &PgPool) -> Result<Vec<Anomaly
                     format!("interaction_count: {}", count),
                 ],
                 block_number: None,
+                tx_hash: None,
+            });
+        }
+    }
+
+    Ok(anomalies)
+}
+
+async fn detect_coordinated_activity(pool: &PgPool) -> Result<Vec<Anomaly>, sqlx::Error> {
+    let mut anomalies = Vec::new();
+
+    let recent_blocks = sqlx::query(
+        "SELECT DISTINCT block_number
+         FROM transactions
+         ORDER BY block_number DESC
+         LIMIT 10",
+    )
+    .fetch_all(pool)
+    .await?;
+
+    for block_row in &recent_blocks {
+        let block_number: i64 = block_row.get("block_number");
+
+        let coordinated = sqlx::query(
+            "SELECT t1.to_addr, COUNT(DISTINCT t1.from_addr) as addr_count,
+                    array_agg(DISTINCT t1.from_addr) as addresses,
+                    MIN(b.timestamp::text) as first_seen
+             FROM transactions t1
+             JOIN blocks b ON b.number = t1.block_number
+             WHERE t1.block_number = $1
+               AND t1.to_addr IS NOT NULL
+             GROUP BY t1.to_addr
+             HAVING COUNT(DISTINCT t1.from_addr) >= 5",
+        )
+        .bind(block_number)
+        .fetch_all(pool)
+        .await?;
+
+        for row in &coordinated {
+            let to_addr: Vec<u8> = row.get("to_addr");
+            let addr_count: i64 = row.get("addr_count");
+            let addresses: Vec<Vec<u8>> = row.get("addresses");
+            let first_seen: String = row.get("first_seen");
+
+            let addr_strs: Vec<String> = addresses
+                .iter()
+                .take(5)
+                .map(|a| format!("0x{}", hex::encode(a)))
+                .collect();
+
+            anomalies.push(Anomaly {
+                id: 0,
+                anomaly_type: AnomalyType::CoordinatedActivity,
+                severity: if addr_count >= 10 {
+                    Severity::High
+                } else {
+                    Severity::Medium
+                },
+                detected_at: first_seen,
+                entity: format!("0x{}", hex::encode(&to_addr)),
+                entity_type: "contract".to_string(),
+                description: format!(
+                    "{} addresses interacted with same contract in block {}",
+                    addr_count, block_number
+                ),
+                observed_value: addr_count as f64,
+                baseline_value: 1.0,
+                threshold: 5.0,
+                evidence: vec![
+                    format!("contract: 0x{}", hex::encode(&to_addr)),
+                    format!("block: {}", block_number),
+                    format!("addresses: {}", addr_strs.join(", ")),
+                ],
+                block_number: Some(block_number),
                 tx_hash: None,
             });
         }
