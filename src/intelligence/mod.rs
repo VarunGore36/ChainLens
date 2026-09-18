@@ -4,6 +4,7 @@ pub mod anomaly;
 pub mod contract;
 pub mod graph;
 pub mod mev;
+pub mod persist;
 
 use serde::{Deserialize, Serialize};
 

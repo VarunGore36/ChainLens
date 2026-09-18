@@ -268,15 +268,18 @@ pub async fn explain_transaction(
     Path(hash): Path<String>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
     match intelligence::actions::explain_transaction(&pool, &hash).await {
-        Ok(explanation) => match serde_json::to_value(explanation) {
-            Ok(v) => Ok(Json(v)),
-            Err(e) => Err((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse {
-                    error: format!("Serialization error: {}", e),
-                }),
-            )),
-        },
+        Ok(explanation) => {
+            let _ = intelligence::persist::persist_transaction_actions(&pool, &explanation).await;
+            match serde_json::to_value(explanation) {
+                Ok(v) => Ok(Json(v)),
+                Err(e) => Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse {
+                        error: format!("Serialization error: {}", e),
+                    }),
+                )),
+            }
+        }
         Err(e) => Err((
             StatusCode::NOT_FOUND,
             Json(ErrorResponse {
@@ -291,15 +294,18 @@ pub async fn get_address_intelligence(
     Path(address): Path<String>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
     match intelligence::address::analyze_address(&pool, &address).await {
-        Ok(intel) => match serde_json::to_value(intel) {
-            Ok(v) => Ok(Json(v)),
-            Err(e) => Err((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse {
-                    error: format!("Serialization error: {}", e),
-                }),
-            )),
-        },
+        Ok(intel) => {
+            let _ = intelligence::persist::persist_address_stats(&pool, &intel).await;
+            match serde_json::to_value(intel) {
+                Ok(v) => Ok(Json(v)),
+                Err(e) => Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse {
+                        error: format!("Serialization error: {}", e),
+                    }),
+                )),
+            }
+        }
         Err(e) => Err((
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ErrorResponse {
@@ -324,15 +330,28 @@ pub async fn get_address_graph(
     let limit = query.limit.unwrap_or(50).min(200);
 
     match intelligence::graph::build_graph(&pool, &address, depth, limit).await {
-        Ok(graph) => match serde_json::to_value(graph) {
-            Ok(v) => Ok(Json(v)),
-            Err(e) => Err((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse {
-                    error: format!("Serialization error: {}", e),
-                }),
-            )),
-        },
+        Ok(graph) => {
+            for edge in &graph.edges {
+                let _ = intelligence::persist::persist_address_relationship(
+                    &pool,
+                    &edge.from,
+                    &edge.to,
+                    &format!("{:?}", edge.relationship).to_lowercase(),
+                    edge.count,
+                    edge.total_value.as_deref(),
+                )
+                .await;
+            }
+            match serde_json::to_value(graph) {
+                Ok(v) => Ok(Json(v)),
+                Err(e) => Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse {
+                        error: format!("Serialization error: {}", e),
+                    }),
+                )),
+            }
+        }
         Err(e) => Err((
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ErrorResponse {
@@ -347,15 +366,18 @@ pub async fn get_contract_intelligence(
     Path(address): Path<String>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
     match intelligence::contract::analyze_contract(&pool, &address).await {
-        Ok(intel) => match serde_json::to_value(intel) {
-            Ok(v) => Ok(Json(v)),
-            Err(e) => Err((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse {
-                    error: format!("Serialization error: {}", e),
-                }),
-            )),
-        },
+        Ok(intel) => {
+            let _ = intelligence::persist::persist_contract_profile(&pool, &intel).await;
+            match serde_json::to_value(intel) {
+                Ok(v) => Ok(Json(v)),
+                Err(e) => Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse {
+                        error: format!("Serialization error: {}", e),
+                    }),
+                )),
+            }
+        }
         Err(e) => Err((
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ErrorResponse {
@@ -369,15 +391,20 @@ pub async fn get_anomalies(
     State(pool): State<PgPool>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
     match intelligence::anomaly::detect_anomalies(&pool).await {
-        Ok(anomalies) => match serde_json::to_value(anomalies) {
-            Ok(v) => Ok(Json(v)),
-            Err(e) => Err((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse {
-                    error: format!("Serialization error: {}", e),
-                }),
-            )),
-        },
+        Ok(anomalies) => {
+            for anomaly in &anomalies {
+                let _ = intelligence::persist::persist_anomaly(&pool, anomaly).await;
+            }
+            match serde_json::to_value(anomalies) {
+                Ok(v) => Ok(Json(v)),
+                Err(e) => Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse {
+                        error: format!("Serialization error: {}", e),
+                    }),
+                )),
+            }
+        }
         Err(e) => Err((
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ErrorResponse {
@@ -392,15 +419,21 @@ pub async fn get_block_analytics(
     Path(number): Path<i64>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
     match intelligence::mev::analyze_block(&pool, number).await {
-        Ok(analytics) => match serde_json::to_value(analytics) {
-            Ok(v) => Ok(Json(v)),
-            Err(e) => Err((
-                StatusCode::INTERNAL_SERVER_ERROR,
-                Json(ErrorResponse {
-                    error: format!("Serialization error: {}", e),
-                }),
-            )),
-        },
+        Ok(analytics) => {
+            let _ = intelligence::persist::persist_block_analytics(&pool, &analytics).await;
+            for event in &analytics.mev_events {
+                let _ = intelligence::persist::persist_mev_event(&pool, event).await;
+            }
+            match serde_json::to_value(analytics) {
+                Ok(v) => Ok(Json(v)),
+                Err(e) => Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse {
+                        error: format!("Serialization error: {}", e),
+                    }),
+                )),
+            }
+        }
         Err(e) => Err((
             StatusCode::NOT_FOUND,
             Json(ErrorResponse {
