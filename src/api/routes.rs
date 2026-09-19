@@ -1,10 +1,21 @@
+use std::sync::Arc;
+
 use axum::Router;
 use axum::routing::get;
 use sqlx::PgPool;
 
 use super::handlers;
+use super::websocket::{WsState, ws_handler};
 
-pub fn router(pool: PgPool) -> Router {
+#[derive(Clone, Debug)]
+pub struct AppState {
+    pub pool: PgPool,
+    pub ws: Arc<WsState>,
+}
+
+pub fn router(pool: PgPool, ws_state: Arc<WsState>) -> Router {
+    let state = AppState { pool, ws: ws_state };
+
     Router::new()
         .route("/block/{number_or_hash}", get(handlers::get_block))
         .route("/transaction/{hash}", get(handlers::get_transaction))
@@ -18,6 +29,7 @@ pub fn router(pool: PgPool) -> Router {
         )
         .route("/health", get(handlers::health))
         .route("/status", get(handlers::status))
+        .route("/ws", get(ws_handler))
         .route(
             "/api/v1/transactions/{hash}/explain",
             get(handlers::explain_transaction),
@@ -56,5 +68,17 @@ pub fn router(pool: PgPool) -> Router {
             get(handlers::get_anomaly_trends),
         )
         .route("/api/v1/mev/trends", get(handlers::get_mev_trends))
-        .with_state(pool)
+        .route(
+            "/api/v1/addresses/{address}/cluster",
+            get(handlers::get_address_cluster),
+        )
+        .route(
+            "/api/v1/contracts/deployers",
+            get(handlers::get_contract_deployers),
+        )
+        .route(
+            "/api/v1/tokens/{address}/whales",
+            get(handlers::get_token_whales),
+        )
+        .with_state(state)
 }

@@ -28,7 +28,7 @@ path = "src/bin/benchmark_harness/main.rs"
 [dependencies]
 anyhow = "1"
 async-trait = "0.1"
-axum = "0.8"
+axum = { version = "0.8", features = ["ws"] }
 clap = { version = "4", features = ["derive", "env"] }
 csv = "1"
 dotenvy = "0.15"

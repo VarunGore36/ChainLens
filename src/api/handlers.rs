@@ -2,7 +2,7 @@ use axum::Json;
 use axum::extract::{Path, Query, State};
 use axum::http::StatusCode;
 use serde::Deserialize;
-use sqlx::{PgPool, Row};
+use sqlx::Row;
 
 use super::dto::*;
 use crate::intelligence;
@@ -16,7 +16,7 @@ fn from_hex(s: &str) -> Result<Vec<u8>, String> {
 }
 
 pub async fn get_block(
-    State(pool): State<PgPool>,
+    State(state): State<super::routes::AppState>,
     Path(number_or_hash): Path<String>,
 ) -> Result<Json<BlockResponse>, (StatusCode, Json<ErrorResponse>)> {
     let row = if let Ok(number) = number_or_hash.parse::<i64>() {
@@ -25,7 +25,7 @@ pub async fn get_block(
              FROM blocks WHERE number = $1"
         )
         .bind(number)
-        .fetch_optional(&pool)
+        .fetch_optional(&state.pool)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: e.to_string() })))?
     } else {
@@ -36,7 +36,7 @@ pub async fn get_block(
              FROM blocks WHERE hash = $1"
         )
         .bind(hash_bytes)
-        .fetch_optional(&pool)
+        .fetch_optional(&state.pool)
         .await
         .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: e.to_string() })))?
     };
@@ -63,7 +63,7 @@ pub async fn get_block(
 }
 
 pub async fn get_transaction(
-    State(pool): State<PgPool>,
+    State(state): State<super::routes::AppState>,
     Path(hash): Path<String>,
 ) -> Result<Json<TransactionResponse>, (StatusCode, Json<ErrorResponse>)> {
     let hash_bytes =
@@ -74,7 +74,7 @@ pub async fn get_transaction(
          FROM transactions WHERE hash = $1"
     )
     .bind(hash_bytes)
-    .fetch_optional(&pool)
+    .fetch_optional(&state.pool)
     .await
     .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(ErrorResponse { error: e.to_string() })))?;
 
@@ -109,7 +109,7 @@ pub struct AddressQuery {
 }
 
 pub async fn get_address_transactions(
-    State(pool): State<PgPool>,
+    State(state): State<super::routes::AppState>,
     Path(address): Path<String>,
     Query(query): Query<AddressQuery>,
 ) -> Result<Json<Vec<AddressTransactionResponse>>, (StatusCode, Json<ErrorResponse>)> {
@@ -129,7 +129,7 @@ pub async fn get_address_transactions(
     .bind(address_bytes)
     .bind(before_block)
     .bind(limit)
-    .fetch_all(&pool)
+    .fetch_all(&state.pool)
     .await
     .map_err(|e| {
         (
@@ -162,7 +162,7 @@ pub struct EventQuery {
 }
 
 pub async fn get_contract_events(
-    State(pool): State<PgPool>,
+    State(state): State<super::routes::AppState>,
     Path(address): Path<String>,
     Query(query): Query<EventQuery>,
 ) -> Result<Json<Vec<LogResponse>>, (StatusCode, Json<ErrorResponse>)> {
@@ -194,7 +194,7 @@ pub async fn get_contract_events(
     .bind(to_block)
     .bind(topic0_bytes)
     .bind(limit)
-    .fetch_all(&pool)
+    .fetch_all(&state.pool)
     .await
     .map_err(|e| {
         (
@@ -227,11 +227,11 @@ pub async fn health() -> Json<HealthResponse> {
 }
 
 pub async fn status(
-    State(pool): State<PgPool>,
+    State(state): State<super::routes::AppState>,
 ) -> Result<Json<StatusResponse>, (StatusCode, Json<ErrorResponse>)> {
     let row =
         sqlx::query("SELECT last_indexed_number, finalized_number FROM indexer_state WHERE id = 1")
-            .fetch_optional(&pool)
+            .fetch_optional(&state.pool)
             .await
             .map_err(|e| {
                 (
@@ -264,12 +264,13 @@ pub async fn status(
 }
 
 pub async fn explain_transaction(
-    State(pool): State<PgPool>,
+    State(state): State<super::routes::AppState>,
     Path(hash): Path<String>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
-    match intelligence::actions::explain_transaction(&pool, &hash).await {
+    match intelligence::actions::explain_transaction(&state.pool, &hash).await {
         Ok(explanation) => {
-            let _ = intelligence::persist::persist_transaction_actions(&pool, &explanation).await;
+            let _ =
+                intelligence::persist::persist_transaction_actions(&state.pool, &explanation).await;
             match serde_json::to_value(explanation) {
                 Ok(v) => Ok(Json(v)),
                 Err(e) => Err((
@@ -290,12 +291,12 @@ pub async fn explain_transaction(
 }
 
 pub async fn get_address_intelligence(
-    State(pool): State<PgPool>,
+    State(state): State<super::routes::AppState>,
     Path(address): Path<String>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
-    match intelligence::address::analyze_address(&pool, &address).await {
+    match intelligence::address::analyze_address(&state.pool, &address).await {
         Ok(intel) => {
-            let _ = intelligence::persist::persist_address_stats(&pool, &intel).await;
+            let _ = intelligence::persist::persist_address_stats(&state.pool, &intel).await;
             match serde_json::to_value(intel) {
                 Ok(v) => Ok(Json(v)),
                 Err(e) => Err((
@@ -322,18 +323,18 @@ pub struct GraphQuery {
 }
 
 pub async fn get_address_graph(
-    State(pool): State<PgPool>,
+    State(state): State<super::routes::AppState>,
     Path(address): Path<String>,
     Query(query): Query<GraphQuery>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
     let depth = query.depth.unwrap_or(2).min(5);
     let limit = query.limit.unwrap_or(50).min(200);
 
-    match intelligence::graph::build_graph(&pool, &address, depth, limit).await {
+    match intelligence::graph::build_graph(&state.pool, &address, depth, limit).await {
         Ok(graph) => {
             for edge in &graph.edges {
                 let _ = intelligence::persist::persist_address_relationship(
-                    &pool,
+                    &state.pool,
                     &edge.from,
                     &edge.to,
                     &format!("{:?}", edge.relationship).to_lowercase(),
@@ -362,12 +363,12 @@ pub async fn get_address_graph(
 }
 
 pub async fn get_contract_intelligence(
-    State(pool): State<PgPool>,
+    State(state): State<super::routes::AppState>,
     Path(address): Path<String>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
-    match intelligence::contract::analyze_contract(&pool, &address).await {
+    match intelligence::contract::analyze_contract(&state.pool, &address).await {
         Ok(intel) => {
-            let _ = intelligence::persist::persist_contract_profile(&pool, &intel).await;
+            let _ = intelligence::persist::persist_contract_profile(&state.pool, &intel).await;
             match serde_json::to_value(intel) {
                 Ok(v) => Ok(Json(v)),
                 Err(e) => Err((
@@ -388,12 +389,12 @@ pub async fn get_contract_intelligence(
 }
 
 pub async fn get_anomalies(
-    State(pool): State<PgPool>,
+    State(state): State<super::routes::AppState>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
-    match intelligence::anomaly::detect_anomalies(&pool).await {
+    match intelligence::anomaly::detect_anomalies(&state.pool).await {
         Ok(anomalies) => {
             for anomaly in &anomalies {
-                let _ = intelligence::persist::persist_anomaly(&pool, anomaly).await;
+                let _ = intelligence::persist::persist_anomaly(&state.pool, anomaly).await;
             }
             match serde_json::to_value(anomalies) {
                 Ok(v) => Ok(Json(v)),
@@ -415,14 +416,14 @@ pub async fn get_anomalies(
 }
 
 pub async fn get_block_analytics(
-    State(pool): State<PgPool>,
+    State(state): State<super::routes::AppState>,
     Path(number): Path<i64>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
-    match intelligence::mev::analyze_block(&pool, number).await {
+    match intelligence::mev::analyze_block(&state.pool, number).await {
         Ok(analytics) => {
-            let _ = intelligence::persist::persist_block_analytics(&pool, &analytics).await;
+            let _ = intelligence::persist::persist_block_analytics(&state.pool, &analytics).await;
             for event in &analytics.mev_events {
-                let _ = intelligence::persist::persist_mev_event(&pool, event).await;
+                let _ = intelligence::persist::persist_mev_event(&state.pool, event).await;
             }
             match serde_json::to_value(analytics) {
                 Ok(v) => Ok(Json(v)),
@@ -450,7 +451,7 @@ pub struct ExportQuery {
 }
 
 pub async fn export_address(
-    State(pool): State<PgPool>,
+    State(state): State<super::routes::AppState>,
     Path(address): Path<String>,
     Query(query): Query<ExportQuery>,
 ) -> Result<axum::response::Response, (StatusCode, Json<ErrorResponse>)> {
@@ -459,8 +460,12 @@ pub async fn export_address(
 
     match format.as_str() {
         "csv" => {
-            match intelligence::export::export_address_transactions_csv(&pool, &address, limit)
-                .await
+            match intelligence::export::export_address_transactions_csv(
+                &state.pool,
+                &address,
+                limit,
+            )
+            .await
             {
                 Ok(csv) => {
                     let mut response = axum::response::Response::new(axum::body::Body::from(csv));
@@ -481,8 +486,12 @@ pub async fn export_address(
             }
         }
         _ => {
-            match intelligence::export::export_address_transactions_json(&pool, &address, limit)
-                .await
+            match intelligence::export::export_address_transactions_json(
+                &state.pool,
+                &address,
+                limit,
+            )
+            .await
             {
                 Ok(data) => {
                     let json = serde_json::to_string(&data).unwrap_or_else(|_| "[]".to_string());
@@ -509,13 +518,13 @@ pub struct TrendQuery {
 }
 
 pub async fn get_address_trends(
-    State(pool): State<PgPool>,
+    State(state): State<super::routes::AppState>,
     Path(address): Path<String>,
     Query(query): Query<TrendQuery>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
     let days = query.days.unwrap_or(30).min(365);
 
-    match intelligence::trends::get_address_trends(&pool, &address, days).await {
+    match intelligence::trends::get_address_trends(&state.pool, &address, days).await {
         Ok(trends) => {
             let value = serde_json::to_value(trends).unwrap_or(serde_json::Value::Array(vec![]));
             Ok(Json(value))
@@ -530,13 +539,13 @@ pub async fn get_address_trends(
 }
 
 pub async fn get_contract_trends(
-    State(pool): State<PgPool>,
+    State(state): State<super::routes::AppState>,
     Path(address): Path<String>,
     Query(query): Query<TrendQuery>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
     let days = query.days.unwrap_or(30).min(365);
 
-    match intelligence::trends::get_contract_trends(&pool, &address, days).await {
+    match intelligence::trends::get_contract_trends(&state.pool, &address, days).await {
         Ok(trends) => {
             let value = serde_json::to_value(trends).unwrap_or(serde_json::Value::Array(vec![]));
             Ok(Json(value))
@@ -551,12 +560,12 @@ pub async fn get_contract_trends(
 }
 
 pub async fn get_anomaly_trends(
-    State(pool): State<PgPool>,
+    State(state): State<super::routes::AppState>,
     Query(query): Query<TrendQuery>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
     let days = query.days.unwrap_or(30).min(365);
 
-    match intelligence::trends::get_anomaly_trends(&pool, days).await {
+    match intelligence::trends::get_anomaly_trends(&state.pool, days).await {
         Ok(trends) => {
             let value = serde_json::to_value(trends).unwrap_or(serde_json::Value::Array(vec![]));
             Ok(Json(value))
@@ -571,12 +580,12 @@ pub async fn get_anomaly_trends(
 }
 
 pub async fn get_mev_trends(
-    State(pool): State<PgPool>,
+    State(state): State<super::routes::AppState>,
     Query(query): Query<TrendQuery>,
 ) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
     let days = query.days.unwrap_or(30).min(365);
 
-    match intelligence::trends::get_mev_trends(&pool, days).await {
+    match intelligence::trends::get_mev_trends(&state.pool, days).await {
         Ok(trends) => {
             let value = serde_json::to_value(trends).unwrap_or(serde_json::Value::Array(vec![]));
             Ok(Json(value))
@@ -585,6 +594,64 @@ pub async fn get_mev_trends(
             StatusCode::INTERNAL_SERVER_ERROR,
             Json(ErrorResponse {
                 error: format!("Failed to get trends: {}", e),
+            }),
+        )),
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct ClusterQuery {
+    pub depth: Option<i32>,
+}
+
+pub async fn get_address_cluster(
+    State(state): State<super::routes::AppState>,
+    Path(address): Path<String>,
+    Query(query): Query<ClusterQuery>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
+    let depth = query.depth.unwrap_or(2).min(5);
+
+    match intelligence::clustering::find_clusters(&state.pool, &address, depth).await {
+        Ok(cluster) => Ok(Json(
+            serde_json::to_value(cluster).unwrap_or(serde_json::Value::Null),
+        )),
+        Err(e) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse {
+                error: format!("Failed to find clusters: {}", e),
+            }),
+        )),
+    }
+}
+
+pub async fn get_contract_deployers(
+    State(state): State<super::routes::AppState>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
+    match intelligence::clustering::detect_contract_deployers(&state.pool, 50).await {
+        Ok(deployers) => Ok(Json(
+            serde_json::to_value(deployers).unwrap_or(serde_json::Value::Array(vec![])),
+        )),
+        Err(e) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse {
+                error: format!("Failed to detect deployers: {}", e),
+            }),
+        )),
+    }
+}
+
+pub async fn get_token_whales(
+    State(state): State<super::routes::AppState>,
+    Path(token_address): Path<String>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
+    match intelligence::clustering::detect_token_whales(&state.pool, &token_address, 50).await {
+        Ok(whales) => Ok(Json(
+            serde_json::to_value(whales).unwrap_or(serde_json::Value::Array(vec![])),
+        )),
+        Err(e) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse {
+                error: format!("Failed to detect whales: {}", e),
             }),
         )),
     }

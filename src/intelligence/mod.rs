@@ -3,6 +3,7 @@ pub mod address;
 pub mod anomaly;
 pub mod background;
 pub mod cache;
+pub mod clustering;
 pub mod contract;
 pub mod events;
 pub mod export;

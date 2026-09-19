@@ -4,7 +4,7 @@
 
 [![Rust](https://img.shields.io/badge/Rust-1.85+-dea584?logo=rust)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/Tests-186_passing-22c55e)]()
+[![Tests](https://img.shields.io/badge/Tests-192_passing-22c55e)]()
 [![Clippy](https://img.shields.io/badge/Clippy-clean-22c55e)]()
 [![Website](https://img.shields.io/badge/Website-live-627eea)](https://chain-lens-chi.vercel.app/)
 
@@ -71,6 +71,10 @@ cargo run --bin api                     # API at http://127.0.0.1:8080
 | `GET /api/v1/contracts/{address}/trends?days=30` | Contract interaction trends |
 | `GET /api/v1/anomalies/trends?days=30` | Anomaly trends over time |
 | `GET /api/v1/mev/trends?days=30` | MEV activity trends |
+| `GET /ws` | WebSocket for real-time updates |
+| `GET /api/v1/addresses/{address}/cluster?depth=2` | Address clustering |
+| `GET /api/v1/contracts/deployers` | Top contract deployers |
+| `GET /api/v1/tokens/{address}/whales` | Token whale addresses |
 
 ## Architecture
 
