@@ -1,0 +1,121 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: chainlens-postgres-prod
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-chainlens}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-chainlens}
+    volumes:
+      - chainlens-pgdata:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:5432:5432"
+    command:
+      - postgres
+      - -c
+      - synchronous_commit=on
+      - -c
+      - fsync=on
+      - -c
+      - shared_buffers=2GB
+      - -c
+      - effective_cache_size=6GB
+      - -c
+      - maintenance_work_mem=1GB
+      - -c
+      - work_mem=64MB
+      - -c
+      - max_wal_size=16GB
+      - -c
+      - min_wal_size=2GB
+      - -c
+      - checkpoint_timeout=15min
+      - -c
+      - checkpoint_completion_target=0.9
+      - -c
+      - wal_compression=on
+      - -c
+      - random_page_cost=1.1
+      - -c
+      - effective_io_concurrency=200
+      - -c
+      - track_io_timing=on
+      - -c
+      - shared_preload_libraries=pg_stat_statements
+      - -c
+      - log_min_duration_statement=1000
+      - -c
+      - log_checkpoints=on
+      - -c
+      - max_connections=100
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-chainlens} -d ${POSTGRES_DB:-chainlens}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  chainlens:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: chainlens-indexer-prod
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-chainlens}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-chainlens}
+      CHAINLENS_RPC_URL: ${CHAINLENS_RPC_URL}
+      CHAINLENS_WORKER_COUNT: ${CHAINLENS_WORKER_COUNT:-8}
+      CHAINLENS_FETCH_QUEUE_DEPTH: ${CHAINLENS_FETCH_QUEUE_DEPTH:-64}
+      CHAINLENS_RPC_RATE_LIMIT: ${CHAINLENS_RPC_RATE_LIMIT:-20}
+    command: ["./chainlens"]
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: chainlens-api-prod
+    restart: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-chainlens}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-chainlens}
+    ports:
+      - "127.0.0.1:8080:8080"
+    command: ["./api"]
+
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: chainlens-prometheus-prod
+    restart: always
+    volumes:
+      - ./docker/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - chainlens-promdata:/prometheus
+    ports:
+      - "127.0.0.1:9090:9090"
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: chainlens-grafana-prod
+    restart: always
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_PASSWORD:-admin}
+    volumes:
+      - chainlens-grafdata:/var/lib/grafana
+      - ./docker/grafana-dashboard.json:/var/lib/grafana/dashboards/chainlens.json:ro
+    ports:
+      - "127.0.0.1:3001:3000"
+
+volumes:
+  chainlens-pgdata:
+    name: chainlens-pgdata-prod
+  chainlens-promdata:
+    name: chainlens-promdata-prod
+  chainlens-grafdata:
+    name: chainlens-grafdata-prod

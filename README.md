@@ -31,7 +31,7 @@ ChainLens indexes Ethereum and turns raw blockchain data into explainable intell
 | Pipeline throughput | **392 blocks/sec** (PostgreSQL 17) |
 | Decode throughput | **1,700,000 blocks/sec** (pure CPU) |
 | Decode latency | **150 ns/block** (ERC-20 transfers) |
-| Tests | **176 passing**, 0 clippy warnings |
+| Tests | **192 passing**, 0 clippy warnings |
 
 ## Quick start
 
@@ -41,6 +41,13 @@ cp .env.example .env                    # add your RPC endpoint
 docker compose up -d                    # PostgreSQL
 cargo run --bin chainlens               # indexer
 cargo run --bin api                     # API at http://127.0.0.1:8080
+```
+
+## Production deployment
+
+```bash
+cp .env.prod.example .env.prod          # fill in production values
+docker compose -f docker-compose.prod.yml up -d
 ```
 
 ## API
