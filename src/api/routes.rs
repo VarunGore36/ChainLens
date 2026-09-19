@@ -1,10 +1,14 @@
 use std::sync::Arc;
 
 use axum::Router;
+use axum::middleware;
 use axum::routing::get;
 use sqlx::PgPool;
 
+use super::cors;
+use super::docs;
 use super::handlers;
+use super::logging;
 use super::websocket::{WsState, ws_handler};
 
 #[derive(Clone, Debug)]
@@ -30,6 +34,7 @@ pub fn router(pool: PgPool, ws_state: Arc<WsState>) -> Router {
         .route("/health", get(handlers::health))
         .route("/status", get(handlers::status))
         .route("/ws", get(ws_handler))
+        .route("/docs", get(docs::api_docs))
         .route(
             "/api/v1/transactions/{hash}/explain",
             get(handlers::explain_transaction),
@@ -80,5 +85,7 @@ pub fn router(pool: PgPool, ws_state: Arc<WsState>) -> Router {
             "/api/v1/tokens/{address}/whales",
             get(handlers::get_token_whales),
         )
+        .layer(middleware::from_fn(logging::request_logger))
+        .layer(cors::cors_layer())
         .with_state(state)
 }

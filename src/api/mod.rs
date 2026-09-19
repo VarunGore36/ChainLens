@@ -1,7 +1,10 @@
 pub mod auth;
 pub mod cache;
+pub mod cors;
+pub mod docs;
 pub mod dto;
 pub mod handlers;
+pub mod logging;
 pub mod ratelimit;
 pub mod routes;
 pub mod websocket;
