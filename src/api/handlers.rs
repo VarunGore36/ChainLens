@@ -222,8 +222,34 @@ pub async fn get_contract_events(
     Ok(Json(result))
 }
 
-pub async fn health() -> Json<HealthResponse> {
-    Json(HealthResponse { status: "ok" })
+pub async fn health(
+    State(state): State<super::routes::AppState>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
+    let db_ok = sqlx::query("SELECT 1").execute(&state.pool).await.is_ok();
+
+    let status = if db_ok { "ok" } else { "degraded" };
+    let status_code = if db_ok {
+        StatusCode::OK
+    } else {
+        StatusCode::SERVICE_UNAVAILABLE
+    };
+
+    let response = serde_json::json!({
+        "status": status,
+        "database": if db_ok { "connected" } else { "disconnected" },
+        "version": env!("CARGO_PKG_VERSION"),
+    });
+
+    if db_ok {
+        Ok(Json(response))
+    } else {
+        Err((
+            status_code,
+            Json(ErrorResponse {
+                error: "database disconnected".to_string(),
+            }),
+        ))
+    }
 }
 
 pub async fn status(
