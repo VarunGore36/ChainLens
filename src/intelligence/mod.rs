@@ -5,10 +5,12 @@ pub mod background;
 pub mod cache;
 pub mod contract;
 pub mod events;
+pub mod export;
 pub mod graph;
 pub mod interfaces;
 pub mod mev;
 pub mod persist;
+pub mod trends;
 
 use serde::{Deserialize, Serialize};
 

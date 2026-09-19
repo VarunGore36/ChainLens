@@ -340,6 +340,104 @@ pub async fn explain_transaction(
                     });
                 }
             }
+            // Curve swap (exchange)
+            "a6417ed6" => {
+                actions.push(TransactionAction {
+                    action_type: ActionType::Swap,
+                    from: from_addr.clone(),
+                    to: to_addr.clone(),
+                    value: None,
+                    token_address: to_addr.clone(),
+                    token_symbol: None,
+                    amount: None,
+                    spender: None,
+                    description: "Swapped tokens (Curve)".to_string(),
+                });
+            }
+            // Balancer swap
+            "52bbbe29" => {
+                actions.push(TransactionAction {
+                    action_type: ActionType::Swap,
+                    from: from_addr.clone(),
+                    to: to_addr.clone(),
+                    value: None,
+                    token_address: to_addr.clone(),
+                    token_symbol: None,
+                    amount: None,
+                    spender: None,
+                    description: "Swapped tokens (Balancer)".to_string(),
+                });
+            }
+            // Lido submit (stake ETH)
+            "a1903eab" => {
+                actions.push(TransactionAction {
+                    action_type: ActionType::ContractCall,
+                    from: from_addr.clone(),
+                    to: to_addr.clone(),
+                    value: Some(value_eth.clone()),
+                    token_address: to_addr.clone(),
+                    token_symbol: None,
+                    amount: None,
+                    spender: None,
+                    description: format!("Staked {} ETH (Lido)", value_eth),
+                });
+            }
+            // Lido requestWithdrawal
+            "0f23ca79" => {
+                actions.push(TransactionAction {
+                    action_type: ActionType::ContractCall,
+                    from: from_addr.clone(),
+                    to: to_addr.clone(),
+                    value: None,
+                    token_address: to_addr.clone(),
+                    token_symbol: None,
+                    amount: None,
+                    spender: None,
+                    description: "Requested withdrawal (Lido)".to_string(),
+                });
+            }
+            // ENS register
+            "1e83409a" => {
+                actions.push(TransactionAction {
+                    action_type: ActionType::ContractCall,
+                    from: from_addr.clone(),
+                    to: to_addr.clone(),
+                    value: Some(value_eth.clone()),
+                    token_address: to_addr.clone(),
+                    token_symbol: None,
+                    amount: None,
+                    spender: None,
+                    description: "Registered ENS name".to_string(),
+                });
+            }
+            // Multicall
+            "ac9650d8" => {
+                actions.push(TransactionAction {
+                    action_type: ActionType::ContractCall,
+                    from: from_addr.clone(),
+                    to: to_addr.clone(),
+                    value: None,
+                    token_address: to_addr.clone(),
+                    token_symbol: None,
+                    amount: None,
+                    spender: None,
+                    description: "Executed multicall".to_string(),
+                });
+            }
+            // Delegatecall
+            "DCALL__" => {
+                actions.push(TransactionAction {
+                    action_type: ActionType::ContractCall,
+                    from: from_addr.clone(),
+                    to: to_addr.clone(),
+                    value: None,
+                    token_address: None,
+                    token_symbol: None,
+                    amount: None,
+                    spender: None,
+                    description: "Delegatecall".to_string(),
+                });
+            }
             _ => {
                 if value_str != "0" {
                     actions.push(TransactionAction {

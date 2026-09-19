@@ -39,5 +39,22 @@ pub fn router(pool: PgPool) -> Router {
             "/api/v1/blocks/{number}/analytics",
             get(handlers::get_block_analytics),
         )
+        .route(
+            "/api/v1/addresses/{address}/export",
+            get(handlers::export_address),
+        )
+        .route(
+            "/api/v1/addresses/{address}/trends",
+            get(handlers::get_address_trends),
+        )
+        .route(
+            "/api/v1/contracts/{address}/trends",
+            get(handlers::get_contract_trends),
+        )
+        .route(
+            "/api/v1/anomalies/trends",
+            get(handlers::get_anomaly_trends),
+        )
+        .route("/api/v1/mev/trends", get(handlers::get_mev_trends))
         .with_state(pool)
 }

@@ -442,3 +442,150 @@ pub async fn get_block_analytics(
         )),
     }
 }
+
+#[derive(Debug, Deserialize)]
+pub struct ExportQuery {
+    pub limit: Option<i64>,
+    pub format: Option<String>,
+}
+
+pub async fn export_address(
+    State(pool): State<PgPool>,
+    Path(address): Path<String>,
+    Query(query): Query<ExportQuery>,
+) -> Result<axum::response::Response, (StatusCode, Json<ErrorResponse>)> {
+    let limit = query.limit.unwrap_or(1000).min(10000);
+    let format = query.format.unwrap_or_else(|| "json".to_string());
+
+    match format.as_str() {
+        "csv" => {
+            match intelligence::export::export_address_transactions_csv(&pool, &address, limit)
+                .await
+            {
+                Ok(csv) => {
+                    let mut response = axum::response::Response::new(axum::body::Body::from(csv));
+                    if let Ok(val) = "text/csv".parse() {
+                        response.headers_mut().insert("Content-Type", val);
+                    }
+                    if let Ok(val) = "attachment; filename=transactions.csv".parse() {
+                        response.headers_mut().insert("Content-Disposition", val);
+                    }
+                    Ok(response)
+                }
+                Err(e) => Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse {
+                        error: format!("Export failed: {}", e),
+                    }),
+                )),
+            }
+        }
+        _ => {
+            match intelligence::export::export_address_transactions_json(&pool, &address, limit)
+                .await
+            {
+                Ok(data) => {
+                    let json = serde_json::to_string(&data).unwrap_or_else(|_| "[]".to_string());
+                    let mut response = axum::response::Response::new(axum::body::Body::from(json));
+                    if let Ok(val) = "application/json".parse() {
+                        response.headers_mut().insert("Content-Type", val);
+                    }
+                    Ok(response)
+                }
+                Err(e) => Err((
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    Json(ErrorResponse {
+                        error: format!("Export failed: {}", e),
+                    }),
+                )),
+            }
+        }
+    }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct TrendQuery {
+    pub days: Option<i32>,
+}
+
+pub async fn get_address_trends(
+    State(pool): State<PgPool>,
+    Path(address): Path<String>,
+    Query(query): Query<TrendQuery>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
+    let days = query.days.unwrap_or(30).min(365);
+
+    match intelligence::trends::get_address_trends(&pool, &address, days).await {
+        Ok(trends) => {
+            let value = serde_json::to_value(trends).unwrap_or(serde_json::Value::Array(vec![]));
+            Ok(Json(value))
+        }
+        Err(e) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse {
+                error: format!("Failed to get trends: {}", e),
+            }),
+        )),
+    }
+}
+
+pub async fn get_contract_trends(
+    State(pool): State<PgPool>,
+    Path(address): Path<String>,
+    Query(query): Query<TrendQuery>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
+    let days = query.days.unwrap_or(30).min(365);
+
+    match intelligence::trends::get_contract_trends(&pool, &address, days).await {
+        Ok(trends) => {
+            let value = serde_json::to_value(trends).unwrap_or(serde_json::Value::Array(vec![]));
+            Ok(Json(value))
+        }
+        Err(e) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse {
+                error: format!("Failed to get trends: {}", e),
+            }),
+        )),
+    }
+}
+
+pub async fn get_anomaly_trends(
+    State(pool): State<PgPool>,
+    Query(query): Query<TrendQuery>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
+    let days = query.days.unwrap_or(30).min(365);
+
+    match intelligence::trends::get_anomaly_trends(&pool, days).await {
+        Ok(trends) => {
+            let value = serde_json::to_value(trends).unwrap_or(serde_json::Value::Array(vec![]));
+            Ok(Json(value))
+        }
+        Err(e) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse {
+                error: format!("Failed to get trends: {}", e),
+            }),
+        )),
+    }
+}
+
+pub async fn get_mev_trends(
+    State(pool): State<PgPool>,
+    Query(query): Query<TrendQuery>,
+) -> Result<Json<serde_json::Value>, (StatusCode, Json<ErrorResponse>)> {
+    let days = query.days.unwrap_or(30).min(365);
+
+    match intelligence::trends::get_mev_trends(&pool, days).await {
+        Ok(trends) => {
+            let value = serde_json::to_value(trends).unwrap_or(serde_json::Value::Array(vec![]));
+            Ok(Json(value))
+        }
+        Err(e) => Err((
+            StatusCode::INTERNAL_SERVER_ERROR,
+            Json(ErrorResponse {
+                error: format!("Failed to get trends: {}", e),
+            }),
+        )),
+    }
+}

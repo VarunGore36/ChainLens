@@ -4,7 +4,7 @@
 
 [![Rust](https://img.shields.io/badge/Rust-1.85+-dea584?logo=rust)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/Tests-183_passing-22c55e)]()
+[![Tests](https://img.shields.io/badge/Tests-186_passing-22c55e)]()
 [![Clippy](https://img.shields.io/badge/Clippy-clean-22c55e)]()
 [![Website](https://img.shields.io/badge/Website-live-627eea)](https://chain-lens-chi.vercel.app/)
 
@@ -66,6 +66,11 @@ cargo run --bin api                     # API at http://127.0.0.1:8080
 | `GET /api/v1/contracts/{address}/intelligence` | Deployment, callers, selectors |
 | `GET /api/v1/anomalies` | Detected anomalies with severity/evidence |
 | `GET /api/v1/blocks/{number}/analytics` | Gas, priority fees, MEV candidates |
+| `GET /api/v1/addresses/{address}/export?format=csv&limit=1000` | Export transactions (JSON/CSV) |
+| `GET /api/v1/addresses/{address}/trends?days=30` | Address activity trends |
+| `GET /api/v1/contracts/{address}/trends?days=30` | Contract interaction trends |
+| `GET /api/v1/anomalies/trends?days=30` | Anomaly trends over time |
+| `GET /api/v1/mev/trends?days=30` | MEV activity trends |
 
 ## Architecture
 
@@ -106,6 +111,11 @@ Ethereum RPC → Head Watcher → Scheduler → Workers (N) → Sequencer → Co
 | WETH | Deposit, Withdrawal | deposit, withdraw |
 | Aave | Deposit, Withdraw, Borrow, Repay, Liquidation | deposit, withdraw, borrow, repay |
 | Compound | — | mint, redeem, redeemUnderlying |
+| Curve | — | exchange, exchange_underlying |
+| Balancer | — | swap |
+| Lido | — | submit, requestWithdrawal |
+| 1inch | — | swap |
+| ENS | — | register |
 | Governance | DelegateChanged, VoteCast | — |
 | Proxy | Upgraded, Initialized | implementation, upgradeTo |
 
@@ -149,17 +159,19 @@ src/
 ├── decode/           Block, transaction, log, ERC-20/721/1155 decoding
 ├── domain/           Domain types (Block, Transaction, Log, TokenTransfer)
 ├── intelligence/     Intelligence engine
-│   ├── actions.rs    Transaction action decoding
+│   ├── actions.rs    Transaction action decoding (Uniswap, Curve, Balancer, Lido, etc.)
 │   ├── address.rs    Address intelligence
 │   ├── anomaly.rs    Anomaly detection
 │   ├── background.rs Background processor
 │   ├── cache.rs      LRU cache with TTL
 │   ├── contract.rs   Contract intelligence
 │   ├── events.rs     Event signature decoding
+│   ├── export.rs     CSV/JSON export
 │   ├── graph.rs      Relationship graph
 │   ├── interfaces.rs Interface detection
 │   ├── mev.rs        MEV detection
-│   └── persist.rs    DB persistence
+│   ├── persist.rs    DB persistence
+│   └── trends.rs     Historical trend queries
 ├── pipeline/         Head watcher, scheduler, workers, sequencer, committer
 ├── reorg/            Reorg detection and rollback (intelligence-safe)
 ├── rpc/              JSON-RPC client with retry, rate limiting
