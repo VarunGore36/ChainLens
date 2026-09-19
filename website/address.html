@@ -213,63 +213,103 @@
     function renderGraph(graph, container) {
         container.innerHTML = '';
         const w = container.offsetWidth;
-        const h = Math.max(400, (graph.nodes.length + 1) * 60);
+        const h = Math.max(500, (graph.nodes.length + 1) * 70);
+        container.style.height = h + 'px';
 
         const cx = w / 2;
         const cy = h / 2;
 
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        svg.setAttribute('width', w);
+        svg.setAttribute('height', h);
+        svg.style.position = 'absolute';
+        svg.style.top = '0';
+        svg.style.left = '0';
+        container.appendChild(svg);
+
+        const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+        defs.innerHTML = `
+            <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="10" refY="3.5" orient="auto">
+                <polygon points="0 0, 10 3.5, 0 7" fill="var(--glass-b)"/>
+            </marker>
+        `;
+        svg.appendChild(defs);
+
         const centerNode = document.createElement('div');
         centerNode.className = 'graph-node center';
-        centerNode.textContent = shorten(graph.center, 8);
+        centerNode.innerHTML = `<div>${shorten(graph.center, 8)}</div><div style="font-size:9px;opacity:0.7">center</div>`;
         centerNode.style.left = cx + 'px';
         centerNode.style.top = cy + 'px';
         centerNode.style.transform = 'translate(-50%, -50%)';
+        centerNode.title = graph.center;
         container.appendChild(centerNode);
 
         const angleStep = (2 * Math.PI) / Math.max(graph.nodes.length, 1);
-        const radius = Math.min(w, h) * 0.35;
+        const radius = Math.min(w, h) * 0.38;
 
         graph.nodes.forEach((node, i) => {
             const angle = angleStep * i - Math.PI / 2;
             const nx = cx + radius * Math.cos(angle);
             const ny = cy + radius * Math.sin(angle);
 
-            const edge = document.createElement('div');
-            edge.className = 'graph-edge';
-            const dx = nx - cx;
-            const dy = ny - cy;
-            const len = Math.sqrt(dx * dx + dy * dy);
-            const angleDeg = Math.atan2(dy, dx) * 180 / Math.PI;
-            edge.style.width = len + 'px';
-            edge.style.left = cx + 'px';
-            edge.style.top = cy + 'px';
-            edge.style.transform = `rotate(${angleDeg}deg)`;
-            container.appendChild(edge);
+            const edge = graph.edges.find(e => e.to === node.address || e.from === node.address);
+            const relType = edge ? edge.relationship : '';
+            const count = edge ? edge.count : 0;
 
+            const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            line.setAttribute('x1', cx);
+            line.setAttribute('y1', cy);
+            line.setAttribute('x2', nx);
+            line.setAttribute('y2', ny);
+            line.setAttribute('stroke', 'var(--glass-b)');
+            line.setAttribute('stroke-width', Math.min(3, 1 + count / 10));
+            line.setAttribute('stroke-dasharray', relType.includes('APPROVED') ? '5,5' : 'none');
+            line.setAttribute('marker-end', 'url(#arrowhead)');
+            line.style.opacity = '0';
+            line.style.transition = 'opacity 0.5s ease ' + (i * 0.05) + 's';
+            svg.appendChild(line);
+            setTimeout(() => line.style.opacity = '1', 50);
+
+            const labelX = (cx + nx) / 2;
+            const labelY = (cy + ny) / 2;
             const label = document.createElement('div');
             label.className = 'graph-label';
-            const relevantEdge = graph.edges.find(e => e.to === node.address || e.from === node.address);
-            label.textContent = relevantEdge ? relevantEdge.relationship.replace(/_/g, ' ') : '';
-            label.style.left = (cx + nx) / 2 + 'px';
-            label.style.top = (cy + ny) / 2 - 10 + 'px';
+            label.textContent = relType.replace(/_/g, ' ').replace('TRANSFERRED TO', '→').replace('RECEIVED FROM', '←');
+            label.style.left = labelX + 'px';
+            label.style.top = (labelY - 12) + 'px';
             label.style.transform = 'translate(-50%, -50%)';
+            label.style.opacity = '0';
+            label.style.transition = 'opacity 0.5s ease ' + (i * 0.05 + 0.2) + 's';
             container.appendChild(label);
+            setTimeout(() => label.style.opacity = '1', 100);
 
             const nodeEl = document.createElement('div');
             nodeEl.className = 'graph-node';
-            nodeEl.textContent = shorten(node.address, 6);
+            nodeEl.innerHTML = `<div>${shorten(node.address, 6)}</div><div style="font-size:9px;color:var(--text-dd)">${count} txs</div>`;
             nodeEl.style.left = nx + 'px';
             nodeEl.style.top = ny + 'px';
             nodeEl.style.transform = 'translate(-50%, -50%)';
-            nodeEl.title = node.address;
+            nodeEl.title = `${node.address}\n${count} interactions`;
+            nodeEl.style.opacity = '0';
+            nodeEl.style.transition = 'opacity 0.5s ease ' + (i * 0.05 + 0.1) + 's';
             nodeEl.onclick = () => {
                 document.getElementById('address').value = node.address;
                 lookup();
             };
             container.appendChild(nodeEl);
+            setTimeout(() => nodeEl.style.opacity = '1', 80);
         });
 
-        container.style.height = h + 'px';
+        const legend = document.createElement('div');
+        legend.style.cssText = 'position:absolute;bottom:10px;right:10px;font-size:10px;color:var(--text-dd);background:var(--bg2);padding:8px 12px;border-radius:6px;border:1px solid var(--glass-b)';
+        legend.innerHTML = `
+            <div style="margin-bottom:4px"><strong>Edges</strong></div>
+            <div>── transferred to</div>
+            <div>←─ received from</div>
+            <div>- - approved</div>
+            <div style="margin-top:4px">Click node to navigate</div>
+        `;
+        container.appendChild(legend);
     }
 
     document.getElementById('address').addEventListener('keydown', e => { if (e.key === 'Enter') lookup(); });

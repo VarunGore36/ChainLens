@@ -4,7 +4,7 @@
 
 [![Rust](https://img.shields.io/badge/Rust-1.85+-dea584?logo=rust)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/Tests-176_passing-22c55e)]()
+[![Tests](https://img.shields.io/badge/Tests-183_passing-22c55e)]()
 [![Clippy](https://img.shields.io/badge/Clippy-clean-22c55e)]()
 [![Website](https://img.shields.io/badge/Website-live-627eea)](https://chain-lens-chi.vercel.app/)
 
