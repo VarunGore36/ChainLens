@@ -4,7 +4,7 @@
 
 [![Rust](https://img.shields.io/badge/Rust-1.85+-dea584?logo=rust)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/Tests-192_passing-22c55e)]()
+[![Tests](https://img.shields.io/badge/Tests-194_passing-22c55e)]()
 [![Clippy](https://img.shields.io/badge/Clippy-clean-22c55e)]()
 [![Website](https://img.shields.io/badge/Website-live-627eea)](https://chain-lens-chi.vercel.app/)
 
@@ -31,7 +31,7 @@ ChainLens indexes Ethereum and turns raw blockchain data into explainable intell
 | Pipeline throughput | **392 blocks/sec** (PostgreSQL 17) |
 | Decode throughput | **1,700,000 blocks/sec** (pure CPU) |
 | Decode latency | **150 ns/block** (ERC-20 transfers) |
-| Tests | **192 passing**, 0 clippy warnings |
+| Tests | **194 passing**, 0 clippy warnings |
 
 ## Quick start
 
@@ -133,13 +133,13 @@ Ethereum RPC → Head Watcher → Scheduler → Workers (N) → Sequencer → Co
 ## Tests
 
 ```bash
-cargo test --locked                              # 176 tests
+cargo test --locked                              # 194 tests
 cargo clippy --locked --all-targets -- -D warnings
 cargo fmt --all -- --check
 cargo bench --bench decode -- --quick
 ```
 
-**Coverage:** config (26) · decode (25) · rpc (27) · store (13) · intelligence (48) · integration (7) · crash recovery (5)
+**Coverage:** config (26) · decode (25) · rpc (27) · store (13) · intelligence (54) · integration (7) · crash recovery (5) · other (4)
 
 ## Observability
 
@@ -167,6 +167,10 @@ Grafana dashboard included: `docker compose up -d` → http://localhost:3001
 ```
 src/
 ├── api/              Query API (axum)
+│   ├── auth.rs       API key authentication
+│   ├── cache.rs      Response caching
+│   ├── ratelimit.rs  Rate limiting middleware
+│   └── websocket.rs  WebSocket for real-time updates
 ├── decode/           Block, transaction, log, ERC-20/721/1155 decoding
 ├── domain/           Domain types (Block, Transaction, Log, TokenTransfer)
 ├── intelligence/     Intelligence engine
@@ -175,6 +179,7 @@ src/
 │   ├── anomaly.rs    Anomaly detection
 │   ├── background.rs Background processor
 │   ├── cache.rs      LRU cache with TTL
+│   ├── clustering.rs Address clustering & whale detection
 │   ├── contract.rs   Contract intelligence
 │   ├── events.rs     Event signature decoding
 │   ├── export.rs     CSV/JSON export

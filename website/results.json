@@ -7,8 +7,19 @@
     "total": 198,
     "passed": 194,
     "failed": 4,
+    "ignored": 9,
     "clippy_warnings": 0,
-    "modules": {}
+    "modules": {
+      "config": 26,
+      "decode_block": 15,
+      "decode_erc20": 17,
+      "rpc": 27,
+      "store": 13,
+      "domain": 4,
+      "intelligence": 54,
+      "integration": 9,
+      "crash_recovery": 5
+    }
   },
   "pipeline_throughput": {
     "blocks_per_sec": 392,

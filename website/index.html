@@ -68,7 +68,7 @@
             </div>
             <div class="stat reveal d2">
                 <div class="stat-icon">✅</div>
-                <div class="stat-num" data-stat="tests_total" data-target="192">0</div>
+                <div class="stat-num" data-stat="tests_total" data-target="194">0</div>
                 <div class="stat-label">Tests</div>
                 <div class="stat-sub"><span data-test-fail>0</span> failures, <span data-test-warn>0</span> warnings</div>
             </div>
@@ -202,6 +202,21 @@
                     <h3>Relationship Graph</h3>
                     <p>Bounded BFS traversal mapping address interactions with depth/limit controls.</p>
                 </div>
+                <div class="feat reveal">
+                    <div class="ico">📡</div>
+                    <h3>WebSocket</h3>
+                    <p>Real-time updates for block commits, anomalies, MEV detection, and reorgs.</p>
+                </div>
+                <div class="feat reveal d1">
+                    <div class="ico">🔗</div>
+                    <h3>Address Clustering</h3>
+                    <p>Groups related addresses by interaction patterns. Find contract deployers and token whales.</p>
+                </div>
+                <div class="feat reveal d2">
+                    <div class="ico">📊</div>
+                    <h3>Export & Trends</h3>
+                    <p>CSV/JSON export for transactions and anomalies. Historical trend queries over time.</p>
+                </div>
             </div>
         </div>
     </section>
@@ -217,9 +232,9 @@
                 <div class="feat reveal"><div class="ico">⟠</div><h3>ERC-20/721/1155</h3><p>Transfer events decoded into typed tables. Token transfers indexed for fast queries.</p></div>
                 <div class="feat reveal d1"><div class="ico">🔄</div><h3>Reorg Handling</h3><p>Detects chain reorganizations, identifies common ancestor, rolls back atomically.</p></div>
                 <div class="feat reveal d2"><div class="ico">📡</div><h3>Prometheus Metrics</h3><p>20+ metrics: blocks/sec, tx/sec, intelligence ops, RPC latency, DB commit time.</p></div>
-                <div class="feat reveal"><div class="ico">🌐</div><h3>Query API</h3><p>Axum REST API with 12 endpoints. Block, transaction, address, intelligence, anomalies.</p></div>
-                <div class="feat reveal d1"><div class="ico">🛡️</div><h3>Security</h3><p>Read-only API, localhost binding, RedactedUrl prevents credential leaks.</p></div>
-                <div class="feat reveal d2"><div class="ico">🐳</div><h3>Docker Ready</h3><p>PostgreSQL + Prometheus + Grafana. Tuned for benchmarking with data checksums.</p></div>
+                <div class="feat reveal"><div class="ico">🌐</div><h3>Query API</h3><p>Axum REST API with 20+ endpoints. Block, transaction, address, intelligence, anomalies, export.</p></div>
+                <div class="feat reveal d1"><div class="ico">🛡️</div><h3>Security</h3><p>API key auth, rate limiting, read-only API, RedactedUrl prevents credential leaks.</p></div>
+                <div class="feat reveal d2"><div class="ico">🐳</div><h3>Docker Ready</h3><p>Multi-stage Dockerfile, production docker-compose, PostgreSQL + Prometheus + Grafana.</p></div>
             </div>
         </div>
     </section>
@@ -229,13 +244,13 @@
             <div class="section-head reveal">
                 <div class="label">Quality</div>
                 <h2>Test Results</h2>
-                <p>183 tests, 0 clippy warnings.</p>
+                <p>194 tests, 0 clippy warnings.</p>
             </div>
             <div class="test-card reveal">
                 <div class="test-header">
                     <h3><div class="live-dot"></div> All Tests Passing</h3>
                     <div class="test-counts">
-                        <div class="tc"><div class="val green" data-test-total>183</div><div class="lbl">Total</div></div>
+                        <div class="tc"><div class="val green" data-test-total>194</div><div class="lbl">Total</div></div>
                         <div class="tc"><div class="val dim" data-test-fail>0</div><div class="lbl">Failures</div></div>
                         <div class="tc"><div class="val dim" data-test-warn>0</div><div class="lbl">Warnings</div></div>
                     </div>
