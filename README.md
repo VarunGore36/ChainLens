@@ -4,7 +4,7 @@
 
 [![Rust](https://img.shields.io/badge/Rust-1.85+-dea584?logo=rust)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/Tests-194_passing-22c55e)]()
+[![Tests](https://img.shields.io/badge/Tests-200_passing-22c55e)]()
 [![Clippy](https://img.shields.io/badge/Clippy-clean-22c55e)]()
 [![Website](https://img.shields.io/badge/Website-live-627eea)](https://chain-lens-chi.vercel.app/)
 
@@ -14,15 +14,20 @@
 
 ChainLens indexes Ethereum and turns raw blockchain data into explainable intelligence:
 
-- **Transaction Explanation** — decodes ETH transfers, ERC-20/721/1155 transfers, approvals, DEX swaps (Uniswap V2/V3, SushiSwap, 1inch), WETH wrap/unwrap, Aave/Compound interactions
-- **Address Intelligence** — activity stats, ETH/token volumes, behavioral classification (trader, deployer, NFT/DEX participant)
+- **Transaction Explanation** — decodes ETH transfers, ERC-20/721/1155 transfers, approvals, DEX swaps (Uniswap V2/V3, SushiSwap, 1inch, Curve, Balancer), WETH wrap/unwrap, Aave/Compound/Lido interactions
+- **Address Intelligence** — activity stats, ETH/token volumes, behavioral classification, address labeling
 - **Relationship Graph** — bounded BFS traversal mapping address interactions (TRANSFERRED_TO, RECEIVED_FROM, CALLED, APPROVED)
+- **Address Clustering** — groups related addresses by interaction patterns, finds deployers and whales
 - **Anomaly Detection** — large transfers, activity spikes, new wallet high-value, contract interaction spikes, coordinated activity
 - **MEV Detection** — sandwich patterns, arbitrage, priority fee anomalies, repeated protocol interactions
 - **Contract Intelligence** — deployment info, unique callers, function selectors, interface detection
 - **Event Signature Decoding** — 25+ known events (Transfer, Swap, Mint, Borrow, Liquidation, VoteCast, etc.)
-- **Interface Detection** — ERC-20/721/1155, Uniswap V2/V3, WETH, Aave, Compound, Ownable, Proxy
+- **Interface Detection** — ERC-20/721/1155, Uniswap V2/V3, WETH, Aave, Compound, Curve, Balancer, Lido, Ownable, Proxy
 - **Background Processing** — intelligence computed incrementally as blocks are indexed, not on API calls
+- **Real-time Updates** — WebSocket for live block commits, anomalies, MEV, and reorgs
+- **Export** — CSV/JSON export for transactions, anomalies, MEV events
+- **Historical Trends** — address activity, contract interactions, anomaly trends over time
+- **Alerting** — automatic alert creation for large transfers and anomalies
 
 ## Performance
 
@@ -31,7 +36,7 @@ ChainLens indexes Ethereum and turns raw blockchain data into explainable intell
 | Pipeline throughput | **392 blocks/sec** (PostgreSQL 17) |
 | Decode throughput | **1,700,000 blocks/sec** (pure CPU) |
 | Decode latency | **150 ns/block** (ERC-20 transfers) |
-| Tests | **194 passing**, 0 clippy warnings |
+| Tests | **200 passing**, 0 clippy warnings |
 
 ## Quick start
 
@@ -169,6 +174,9 @@ src/
 ├── api/              Query API (axum)
 │   ├── auth.rs       API key authentication
 │   ├── cache.rs      Response caching
+│   ├── cors.rs       CORS configuration
+│   ├── docs.rs       API documentation endpoint
+│   ├── logging.rs    Request logging middleware
 │   ├── ratelimit.rs  Rate limiting middleware
 │   └── websocket.rs  WebSocket for real-time updates
 ├── decode/           Block, transaction, log, ERC-20/721/1155 decoding
@@ -176,6 +184,7 @@ src/
 ├── intelligence/     Intelligence engine
 │   ├── actions.rs    Transaction action decoding (Uniswap, Curve, Balancer, Lido, etc.)
 │   ├── address.rs    Address intelligence
+│   ├── alerting.rs   Alert system for anomalies and large transfers
 │   ├── anomaly.rs    Anomaly detection
 │   ├── background.rs Background processor
 │   ├── cache.rs      LRU cache with TTL
@@ -185,6 +194,7 @@ src/
 │   ├── export.rs     CSV/JSON export
 │   ├── graph.rs      Relationship graph
 │   ├── interfaces.rs Interface detection
+│   ├── labels.rs     Address labeling
 │   ├── mev.rs        MEV detection
 │   ├── persist.rs    DB persistence
 │   └── trends.rs     Historical trend queries
