@@ -313,4 +313,124 @@ mod tests {
         assert_eq!(graph.total_nodes, 1);
         assert_eq!(graph.total_edges, 1);
     }
+
+    #[test]
+    fn graph_empty() {
+        let graph = AddressGraph {
+            center: "0xcenter".to_string(),
+            nodes: vec![],
+            edges: vec![],
+            depth_reached: 0,
+            total_nodes: 0,
+            total_edges: 0,
+        };
+        assert_eq!(graph.center, "0xcenter");
+        assert_eq!(graph.total_nodes, 0);
+        assert!(graph.nodes.is_empty());
+        assert!(graph.edges.is_empty());
+    }
+
+    #[test]
+    fn graph_multiple_nodes() {
+        let graph = AddressGraph {
+            center: "0xcenter".to_string(),
+            nodes: vec![
+                GraphNode {
+                    address: "0x1111".to_string(),
+                    label: None,
+                    interaction_count: 5,
+                    first_interaction: None,
+                    last_interaction: None,
+                },
+                GraphNode {
+                    address: "0x2222".to_string(),
+                    label: None,
+                    interaction_count: 3,
+                    first_interaction: None,
+                    last_interaction: None,
+                },
+                GraphNode {
+                    address: "0x3333".to_string(),
+                    label: None,
+                    interaction_count: 10,
+                    first_interaction: None,
+                    last_interaction: None,
+                },
+            ],
+            edges: vec![
+                GraphEdge {
+                    from: "0xcenter".to_string(),
+                    to: "0x1111".to_string(),
+                    relationship: RelationshipType::TransferredTo,
+                    count: 5,
+                    total_value: Some("10.0".to_string()),
+                    first_seen: None,
+                    last_seen: None,
+                },
+                GraphEdge {
+                    from: "0xcenter".to_string(),
+                    to: "0x2222".to_string(),
+                    relationship: RelationshipType::ReceivedFrom,
+                    count: 3,
+                    total_value: Some("5.0".to_string()),
+                    first_seen: None,
+                    last_seen: None,
+                },
+            ],
+            depth_reached: 2,
+            total_nodes: 3,
+            total_edges: 2,
+        };
+        assert_eq!(graph.total_nodes, 3);
+        assert_eq!(graph.total_edges, 2);
+        assert_eq!(graph.edges[0].relationship, RelationshipType::TransferredTo);
+        assert_eq!(graph.edges[1].relationship, RelationshipType::ReceivedFrom);
+    }
+
+    #[test]
+    fn graph_node_with_label() {
+        let node = GraphNode {
+            address: "0x1234".to_string(),
+            label: Some("Uniswap Router".to_string()),
+            interaction_count: 100,
+            first_interaction: Some("2024-01-01".to_string()),
+            last_interaction: Some("2024-12-31".to_string()),
+        };
+        assert_eq!(node.label.unwrap(), "Uniswap Router");
+        assert_eq!(node.interaction_count, 100);
+    }
+
+    #[test]
+    fn graph_edge_with_value() {
+        let edge = GraphEdge {
+            from: "0x1111".to_string(),
+            to: "0x2222".to_string(),
+            relationship: RelationshipType::TransferredTo,
+            count: 50,
+            total_value: Some("100.5".to_string()),
+            first_seen: Some("2024-01-01".to_string()),
+            last_seen: Some("2024-06-30".to_string()),
+        };
+        assert_eq!(edge.total_value.unwrap(), "100.5");
+        assert_eq!(edge.count, 50);
+    }
+
+    #[test]
+    fn relationship_types_all_serialize() {
+        let types = vec![
+            RelationshipType::TransferredTo,
+            RelationshipType::ReceivedFrom,
+            RelationshipType::Called,
+            RelationshipType::Approved,
+            RelationshipType::Deployed,
+            RelationshipType::InteractedWith,
+            RelationshipType::TransferredTokenTo,
+        ];
+        for rt in types {
+            let json = serde_json::to_string(&rt).unwrap();
+            assert!(!json.is_empty());
+            assert!(json.starts_with('"'));
+            assert!(json.ends_with('"'));
+        }
+    }
 }
