@@ -471,4 +471,88 @@ mod tests {
             assert!(!json.is_empty());
         }
     }
+
+    #[test]
+    fn anomaly_with_all_severities() {
+        let severities = vec![
+            Severity::Low,
+            Severity::Medium,
+            Severity::High,
+            Severity::Critical,
+        ];
+        for sev in severities {
+            let anomaly = Anomaly {
+                id: 1,
+                anomaly_type: AnomalyType::LargeTransfer,
+                severity: sev,
+                detected_at: "2024-01-01".to_string(),
+                entity: "0x1234".to_string(),
+                entity_type: "address".to_string(),
+                description: "test".to_string(),
+                observed_value: 100.0,
+                baseline_value: 10.0,
+                threshold: 50.0,
+                evidence: vec![],
+                block_number: None,
+                tx_hash: None,
+            };
+            let json = serde_json::to_string(&anomaly).unwrap();
+            assert!(!json.is_empty());
+        }
+    }
+
+    #[test]
+    fn anomaly_with_evidence() {
+        let anomaly = Anomaly {
+            id: 1,
+            anomaly_type: AnomalyType::LargeTransfer,
+            severity: Severity::High,
+            detected_at: "2024-01-01".to_string(),
+            entity: "0x1234".to_string(),
+            entity_type: "address".to_string(),
+            description: "Large transfer".to_string(),
+            observed_value: 1000000.0,
+            baseline_value: 1000.0,
+            threshold: 5000.0,
+            evidence: vec![
+                "tx_hash: 0xabc".to_string(),
+                "value: 1000000".to_string(),
+                "from: 0x1111".to_string(),
+                "to: 0x2222".to_string(),
+            ],
+            block_number: Some(12345),
+            tx_hash: Some("0xabc".to_string()),
+        };
+        assert_eq!(anomaly.evidence.len(), 4);
+        assert!(anomaly.evidence.contains(&"tx_hash: 0xabc".to_string()));
+    }
+
+    #[test]
+    fn anomaly_without_block_and_tx() {
+        let anomaly = Anomaly {
+            id: 1,
+            anomaly_type: AnomalyType::ContractInteractionSpike,
+            severity: Severity::Medium,
+            detected_at: "2024-01-01".to_string(),
+            entity: "0xcontract".to_string(),
+            entity_type: "contract".to_string(),
+            description: "Interaction spike".to_string(),
+            observed_value: 500.0,
+            baseline_value: 100.0,
+            threshold: 200.0,
+            evidence: vec![],
+            block_number: None,
+            tx_hash: None,
+        };
+        assert!(anomaly.block_number.is_none());
+        assert!(anomaly.tx_hash.is_none());
+    }
+
+    #[test]
+    fn severity_order_values() {
+        assert_eq!(severity_order(&Severity::Low), 1);
+        assert_eq!(severity_order(&Severity::Medium), 2);
+        assert_eq!(severity_order(&Severity::High), 3);
+        assert_eq!(severity_order(&Severity::Critical), 4);
+    }
 }
