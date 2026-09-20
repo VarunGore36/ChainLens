@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Address Clusters — ChainLens</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .search-bar{display:flex;gap:12px;margin-bottom:32px}
+        .search-bar input{flex:1;padding:14px 20px;background:var(--bg2);border:1px solid var(--glass-b);border-radius:var(--rs);color:var(--text);font-size:15px;font-family:'JetBrains Mono',monospace;outline:none;transition:border-color .2s}
+        .search-bar input:focus{border-color:var(--accent)}
+        .search-bar button{padding:14px 28px;background:linear-gradient(135deg,var(--accent),var(--accent-d));color:#fff;border:none;border-radius:var(--rs);font-weight:600;cursor:pointer;transition:all .3s}
+        .search-bar button:hover{transform:translateY(-2px);box-shadow:0 8px 30px var(--glow)}
+        .result{display:none}.result.visible{display:block}
+        .cluster-card{background:var(--bg2);border:1px solid var(--glass-b);border-radius:var(--r);padding:32px;margin-bottom:24px}
+        .cluster-card h3{font-size:18px;margin-bottom:20px}
+        .cluster-info{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px}
+        .cluster-info-item{padding:16px;background:var(--bg3);border-radius:var(--rs)}
+        .cluster-info-item .label{font-size:11px;color:var(--text-dd);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px}
+        .cluster-info-item .value{font-size:18px;font-weight:600;color:var(--accent-l)}
+        .cluster-badge{display:inline-block;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;margin-bottom:16px}
+        .cluster-badge.small{background:rgba(34,197,94,.15);color:var(--green);border:1px solid rgba(34,197,94,.3)}
+        .cluster-badge.medium{background:rgba(245,158,11,.15);color:var(--amber);border:1px solid rgba(245,158,11,.3)}
+        .cluster-badge.large{background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.3)}
+        .address-list{display:flex;flex-wrap:wrap;gap:8px}
+        .address-tag{padding:10px 16px;background:var(--bg3);border:1px solid var(--glass-b);border-radius:var(--rxs);font-size:12px;font-family:'JetBrains Mono',monospace;color:var(--accent-l);cursor:pointer;transition:all .2s}
+        .address-tag:hover{border-color:var(--accent);background:var(--glow-s)}
+        .address-tag.center{background:var(--accent);color:white;border-color:var(--accent)}
+        .deployers-table{width:100%;border-collapse:collapse}
+        .deployers-table th{text-align:left;padding:12px 16px;font-size:11px;color:var(--text-dd);text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid var(--glass-b)}
+        .deployers-table td{padding:12px 16px;border-bottom:1px solid rgba(42,42,58,.5);font-size:13px}
+        .deployers-table tr:hover td{background:var(--glow-s)}
+        .deployers-table .addr{font-family:'JetBrains Mono',monospace;color:var(--accent-l);cursor:pointer}
+        .loading{text-align:center;padding:60px;color:var(--text-dd)}
+        .error{text-align:center;padding:40px;color:var(--red);background:rgba(239,68,68,.1);border-radius:var(--rs)}
+    </style>
+</head>
+<body>
+    <nav id="nav">
+        <div class="nav-inner">
+            <a href="index.html" class="logo"><div class="logo-mark">CL</div><span>ChainLens</span></a>
+            <ul class="nav-links">
+                <li><a href="index.html#benchmarks">Benchmarks</a></li>
+                <li><a href="tx.html">Transaction</a></li>
+                <li><a href="address.html">Address</a></li>
+                <li><a href="contract.html">Contract</a></li>
+                <li><a href="block.html">Block</a></li>
+                <li><a href="cluster.html" class="active">Clusters</a></li>
+            </ul>
+            <a href="https://github.com/VarunGore36/ChainLens" class="gh-btn" target="_blank"><svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>GitHub</a>
+        </div>
+    </nav>
+
+    <section class="section" style="padding-top:120px">
+        <div class="container">
+            <div class="section-head">
+                <div class="label">Intelligence</div>
+                <h2>Address Clusters</h2>
+                <p>Find related addresses and top deployers.</p>
+            </div>
+
+            <div class="search-bar">
+                <input type="text" id="address" placeholder="0x..." autocomplete="off">
+                <button onclick="lookup()">Find Cluster</button>
+            </div>
+
+            <div id="loading" class="loading" style="display:none">Finding cluster...</div>
+            <div id="error" class="error" style="display:none"></div>
+
+            <div id="result" class="result">
+                <div class="cluster-card">
+                    <h3>🔗 Address Cluster</h3>
+                    <div id="clusterBadge"></div>
+                    <div class="cluster-info">
+                        <div class="cluster-info-item">
+                            <div class="label">Cluster Size</div>
+                            <div class="value" id="clusterSize">0</div>
+                        </div>
+                        <div class="cluster-info-item">
+                            <div class="label">Total Interactions</div>
+                            <div class="value" id="totalInteractions">0</div>
+                        </div>
+                        <div class="cluster-info-item">
+                            <div class="label">First Seen</div>
+                            <div class="value" id="firstSeen">—</div>
+                        </div>
+                        <div class="cluster-info-item">
+                            <div class="label">Last Seen</div>
+                            <div class="value" id="lastSeen">—</div>
+                        </div>
+                    </div>
+                    <h3 style="margin-bottom:16px">Addresses in Cluster</h3>
+                    <div class="address-list" id="addressList"></div>
+                </div>
+            </div>
+
+            <div class="cluster-card" style="margin-top:40px">
+                <h3>🏭 Top Contract Deployers</h3>
+                <div id="deployersList" style="margin-top:20px">
+                    <div style="color:var(--text-dd)">Loading deployers...</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script>
+    const API_BASE = window.location.hostname === 'localhost' ? 'http://127.0.0.1:8080' : '';
+
+    function shorten(addr, len = 6) {
+        if (!addr) return '—';
+        return addr.slice(0, len + 2) + '...' + addr.slice(-4);
+    }
+
+    async function lookup() {
+        const addr = document.getElementById('address').value.trim();
+        if (!addr) return;
+
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('error').style.display = 'none';
+        document.getElementById('result').classList.remove('visible');
+
+        try {
+            const res = await fetch(`${API_BASE}/api/v1/addresses/${addr}/cluster?depth=3`);
+            if (!res.ok) throw new Error((await res.json()).error || 'Failed to find cluster');
+            const data = await res.json();
+            renderCluster(data);
+            document.getElementById('result').classList.add('visible');
+        } catch (e) {
+            document.getElementById('error').textContent = e.message;
+            document.getElementById('error').style.display = 'block';
+        } finally {
+            document.getElementById('loading').style.display = 'none';
+        }
+    }
+
+    function renderCluster(data) {
+        document.getElementById('clusterSize').textContent = data.addresses.length.toLocaleString();
+        document.getElementById('totalInteractions').textContent = data.total_interactions.toLocaleString();
+        document.getElementById('firstSeen').textContent = data.first_seen ? new Date(data.first_seen).toLocaleDateString() : '—';
+        document.getElementById('lastSeen').textContent = data.last_seen ? new Date(data.last_seen).toLocaleDateString() : '—';
+
+        const badgeClass = data.cluster_type.replace('_cluster', '');
+        document.getElementById('clusterBadge').innerHTML = `<div class="cluster-badge ${badgeClass}">${data.cluster_type.replace('_', ' ')}</div>`;
+
+        const html = data.addresses.map((addr, i) => {
+            const isCenter = i === 0;
+            return `<a href="address.html?address=${addr}" class="address-tag ${isCenter ? 'center' : ''}">${shorten(addr, 8)}</a>`;
+        }).join('');
+        document.getElementById('addressList').innerHTML = html || '<div style="color:var(--text-dd)">No addresses in cluster</div>';
+    }
+
+    async function loadDeployers() {
+        try {
+            const res = await fetch(`${API_BASE}/api/v1/contracts/deployers`);
+            if (!res.ok) throw new Error('Failed to load deployers');
+            const deployers = await res.json();
+
+            if (!deployers || deployers.length === 0) {
+                document.getElementById('deployersList').innerHTML = '<div style="color:var(--text-dd)">No deployers found</div>';
+                return;
+            }
+
+            const html = `
+                <table class="deployers-table">
+                    <thead>
+                        <tr>
+                            <th>Address</th>
+                            <th>Contracts Deployed</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${deployers.map(d => `
+                            <tr>
+                                <td><a href="address.html?address=${d[0]}" class="addr">${shorten(d[0], 10)}</a></td>
+                                <td>${d[1].toLocaleString()}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+            document.getElementById('deployersList').innerHTML = html;
+        } catch (e) {
+            document.getElementById('deployersList').innerHTML = `<div style="color:var(--text-dd)">${e.message}</div>`;
+        }
+    }
+
+    document.getElementById('address').addEventListener('keydown', e => { if (e.key === 'Enter') lookup(); });
+
+    loadDeployers();
+    </script>
+</body>
+</html>

@@ -277,5 +277,102 @@ function applyResults(d) {
 // Load on page ready
 loadResults();
 
-// Auto-refresh every 5 minutes
-setInterval(loadResults, 5 * 60 * 1000);
+// ====== WEBSOCKET ======
+let ws = null;
+let wsReconnectTimer = null;
+
+function connectWebSocket() {
+    const wsUrl = window.location.protocol === 'https:'
+        ? `wss://${window.location.host}/ws`
+        : `ws://${window.location.hostname}:8080/ws`;
+
+    try {
+        ws = new WebSocket(wsUrl);
+
+        ws.onopen = () => {
+            console.log('WebSocket connected');
+            addNotification('Connected to live feed', 'success');
+        };
+
+        ws.onmessage = (event) => {
+            try {
+                const data = JSON.parse(event.data);
+                handleWsEvent(data);
+            } catch (e) {
+                console.error('Failed to parse WebSocket message:', e);
+            }
+        };
+
+        ws.onclose = () => {
+            console.log('WebSocket disconnected');
+            wsReconnectTimer = setTimeout(connectWebSocket, 5000);
+        };
+
+        ws.onerror = (error) => {
+            console.error('WebSocket error:', error);
+        };
+    } catch (e) {
+        console.log('WebSocket not available');
+    }
+}
+
+function handleWsEvent(data) {
+    switch (data.type) {
+        case 'connected':
+            break;
+        case 'block_committed':
+            addNotification(`Block #${data.block_number} committed (${data.tx_count} txs)`, 'info');
+            break;
+        case 'anomaly_detected':
+            addNotification(`Anomaly: ${data.description}`, data.severity === 'high' ? 'error' : 'warning');
+            break;
+        case 'mev_detected':
+            addNotification(`MEV: ${data.description}`, 'warning');
+            break;
+        case 'reorg_detected':
+            addNotification(`Reorg detected at block ${data.common_ancestor}`, 'error');
+            break;
+    }
+}
+
+function addNotification(message, type = 'info') {
+    const container = document.getElementById('notifications');
+    if (!container) return;
+
+    const notification = document.createElement('div');
+    notification.className = `notification ${type}`;
+    notification.innerHTML = `
+        <div class="notification-content">
+            <span class="notification-icon">${type === 'error' ? '🔴' : type === 'warning' ? '🟡' : '🟢'}</span>
+            <span class="notification-text">${message}</span>
+        </div>
+        <button class="notification-close" onclick="this.parentElement.remove()">×</button>
+    `;
+
+    container.appendChild(notification);
+
+    setTimeout(() => {
+        notification.classList.add('fade-out');
+        setTimeout(() => notification.remove(), 300);
+    }, 5000);
+}
+
+// ====== EXPORT FUNCTIONS ======
+function exportData(format, endpoint) {
+    const url = `${API_BASE}${endpoint}?format=${format}&limit=10000`;
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `chainlens-export.${format}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+}
+
+function exportAddressTransactions(address, format = 'json') {
+    exportData(format, `/api/v1/addresses/${address}/export`);
+}
+
+function exportAnomalies(format = 'json') {
+    window.open(`${API_BASE}/api/v1/anomalies?format=${format}`, '_blank');
+}

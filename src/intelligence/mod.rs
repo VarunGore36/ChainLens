@@ -1,5 +1,6 @@
 pub mod actions;
 pub mod address;
+pub mod alerting;
 pub mod anomaly;
 pub mod background;
 pub mod cache;
@@ -9,6 +10,7 @@ pub mod events;
 pub mod export;
 pub mod graph;
 pub mod interfaces;
+pub mod labels;
 pub mod mev;
 pub mod persist;
 pub mod trends;
