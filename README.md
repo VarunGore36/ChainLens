@@ -4,7 +4,7 @@
 
 [![Rust](https://img.shields.io/badge/Rust-1.85+-dea584?logo=rust)](https://www.rust-lang.org/)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/Tests-200_passing-22c55e)]()
+[![Tests](https://img.shields.io/badge/Tests-218_passing-22c55e)]()
 [![Clippy](https://img.shields.io/badge/Clippy-clean-22c55e)]()
 [![Website](https://img.shields.io/badge/Website-live-627eea)](https://chain-lens-chi.vercel.app/)
 
@@ -36,7 +36,7 @@ ChainLens indexes Ethereum and turns raw blockchain data into explainable intell
 | Pipeline throughput | **392 blocks/sec** (PostgreSQL 17) |
 | Decode throughput | **1,700,000 blocks/sec** (pure CPU) |
 | Decode latency | **150 ns/block** (ERC-20 transfers) |
-| Tests | **200 passing**, 0 clippy warnings |
+| Tests | **218 passing**, 0 clippy warnings |
 
 ## Quick start
 
@@ -138,13 +138,13 @@ Ethereum RPC → Head Watcher → Scheduler → Workers (N) → Sequencer → Co
 ## Tests
 
 ```bash
-cargo test --locked                              # 194 tests
+cargo test --locked                              # 218 tests
 cargo clippy --locked --all-targets -- -D warnings
 cargo fmt --all -- --check
 cargo bench --bench decode -- --quick
 ```
 
-**Coverage:** config (26) · decode (25) · rpc (27) · store (13) · intelligence (54) · integration (7) · crash recovery (5) · other (4)
+**Coverage:** config (26) · decode (25) · rpc (27) · store (13) · intelligence (64) · integration (7) · crash recovery (5) · other (4)
 
 ## Observability
 
