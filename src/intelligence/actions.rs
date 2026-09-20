@@ -689,4 +689,85 @@ mod tests {
         let fee = calculate_tx_fee(30000000, Some("100000000000"));
         assert_eq!(fee, "3.000000");
     }
+
+    #[test]
+    fn wei_to_eth_zero() {
+        assert_eq!(wei_to_eth("0"), "0.000000");
+    }
+
+    #[test]
+    fn wei_to_eth_one_ether() {
+        assert_eq!(wei_to_eth("1000000000000000000"), "1.000000");
+    }
+
+    #[test]
+    fn wei_to_eth_half_ether() {
+        assert_eq!(wei_to_eth("500000000000000000"), "0.500000");
+    }
+
+    #[test]
+    fn wei_to_gwei_zero() {
+        assert_eq!(wei_to_gwei("0"), "0.00");
+    }
+
+    #[test]
+    fn wei_to_gwei_one_gwei() {
+        assert_eq!(wei_to_gwei("1000000000"), "1.00");
+    }
+
+    #[test]
+    fn wei_to_gwei_twenty_gwei() {
+        assert_eq!(wei_to_gwei("20000000000"), "20.00");
+    }
+
+    #[test]
+    fn tx_fee_zero_gas_used() {
+        assert_eq!(calculate_tx_fee(0, Some("1000000000")), "0.000000");
+    }
+
+    #[test]
+    fn tx_fee_none_gas_price() {
+        assert_eq!(calculate_tx_fee(21000, None), "0.000000");
+    }
+
+    #[test]
+    fn build_summary_eth_transfer() {
+        let actions = vec![TransactionAction {
+            action_type: ActionType::EthTransfer,
+            from: "0x1111111111111111111111111111111111111111".to_string(),
+            to: Some("0x2222222222222222222222222222222222222222".to_string()),
+            value: Some("1.000000".to_string()),
+            token_address: None,
+            token_symbol: None,
+            amount: None,
+            spender: None,
+            description: "test".to_string(),
+        }];
+        let summary = build_summary(
+            &actions,
+            "0x1111111111111111111111111111111111111111",
+            &Some("0x2222222222222222222222222222222222222222".to_string()),
+            "1.000000",
+        );
+        assert!(summary.contains("1.000000"));
+        assert!(summary.contains("ETH"));
+    }
+
+    #[test]
+    fn build_summary_empty_actions() {
+        let actions = vec![];
+        let summary = build_summary(
+            &actions,
+            "0x1111111111111111111111111111111111111111",
+            &None,
+            "0",
+        );
+        assert!(summary.contains("Transaction"));
+    }
+
+    #[test]
+    fn selector_hex_encoding() {
+        let selector = [0xa9u8, 0x05, 0x9c, 0xbb];
+        assert_eq!(hex::encode(selector), "a9059cbb");
+    }
 }
