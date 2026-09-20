@@ -215,4 +215,58 @@ mod tests {
         cache.cleanup_expired().await;
         assert_eq!(cache.len().await, 0);
     }
+
+    #[tokio::test]
+    async fn cache_update_existing() {
+        let cache = IntelligenceCache::new(100, Duration::from_secs(60));
+        cache.set("key1".to_string(), "value1".to_string()).await;
+        cache.set("key1".to_string(), "value2".to_string()).await;
+        assert_eq!(cache.get("key1").await, Some("value2".to_string()));
+    }
+
+    #[tokio::test]
+    async fn cache_is_empty_initially() {
+        let cache = IntelligenceCache::<String>::new(100, Duration::from_secs(60));
+        assert!(cache.is_empty().await);
+    }
+
+    #[tokio::test]
+    async fn cache_is_not_empty_after_set() {
+        let cache = IntelligenceCache::new(100, Duration::from_secs(60));
+        cache.set("key1".to_string(), "value1".to_string()).await;
+        assert!(!cache.is_empty().await);
+    }
+
+    #[tokio::test]
+    async fn cache_len_increases() {
+        let cache = IntelligenceCache::new(100, Duration::from_secs(60));
+        assert_eq!(cache.len().await, 0);
+        cache.set("key1".to_string(), "value1".to_string()).await;
+        assert_eq!(cache.len().await, 1);
+        cache.set("key2".to_string(), "value2".to_string()).await;
+        assert_eq!(cache.len().await, 2);
+    }
+
+    #[tokio::test]
+    async fn cache_remove_nonexistent() {
+        let cache = IntelligenceCache::<String>::new(100, Duration::from_secs(60));
+        cache.remove("nonexistent").await;
+        assert_eq!(cache.len().await, 0);
+    }
+
+    #[tokio::test]
+    async fn cache_clear_empty() {
+        let cache = IntelligenceCache::<String>::new(100, Duration::from_secs(60));
+        cache.clear().await;
+        assert_eq!(cache.len().await, 0);
+    }
+
+    #[tokio::test]
+    async fn cache_different_keys() {
+        let cache = IntelligenceCache::new(100, Duration::from_secs(60));
+        cache.set("key1".to_string(), "value1".to_string()).await;
+        cache.set("key2".to_string(), "value2".to_string()).await;
+        assert_eq!(cache.get("key1").await, Some("value1".to_string()));
+        assert_eq!(cache.get("key2").await, Some("value2".to_string()));
+    }
 }
