@@ -452,4 +452,138 @@ mod tests {
         assert!(json.contains("999"));
         assert!(json.contains("50"));
     }
+
+    #[test]
+    fn mev_event_with_all_types() {
+        let types = vec![
+            MevType::PossibleSandwich,
+            MevType::PossibleArbitrage,
+            MevType::PossibleLiquidation,
+            MevType::PriorityFeeAnomaly,
+            MevType::RepeatedProtocolInteraction,
+        ];
+        for mt in types {
+            let event = MevEvent {
+                id: 1,
+                mev_type: mt,
+                severity: "medium".to_string(),
+                block_number: 100,
+                timestamp: "2024-01-01".to_string(),
+                description: "test".to_string(),
+                involved_addresses: vec![],
+                involved_transactions: vec![],
+                estimated_value: None,
+                confidence: 0.5,
+            };
+            let json = serde_json::to_string(&event).unwrap();
+            assert!(!json.is_empty());
+        }
+    }
+
+    #[test]
+    fn mev_event_with_multiple_addresses() {
+        let event = MevEvent {
+            id: 1,
+            mev_type: MevType::PossibleSandwich,
+            severity: "high".to_string(),
+            block_number: 18000000,
+            timestamp: "2024-01-01".to_string(),
+            description: "Sandwich attack".to_string(),
+            involved_addresses: vec![
+                "0x1111".to_string(),
+                "0x2222".to_string(),
+                "0x3333".to_string(),
+            ],
+            involved_transactions: vec![
+                "0xaaa".to_string(),
+                "0xbbb".to_string(),
+                "0xccc".to_string(),
+            ],
+            estimated_value: Some("5000000000000000000".to_string()),
+            confidence: 0.85,
+        };
+        assert_eq!(event.involved_addresses.len(), 3);
+        assert_eq!(event.involved_transactions.len(), 3);
+        assert_eq!(event.confidence, 0.85);
+    }
+
+    #[test]
+    fn block_analytics_with_events() {
+        let analytics = BlockAnalytics {
+            block_number: 18000000,
+            timestamp: "2024-01-01T00:00:00Z".to_string(),
+            tx_count: 200,
+            gas_used: 30000000,
+            gas_limit: 30000000,
+            base_fee: Some("20000000000".to_string()),
+            total_priority_fees: "5000000000000".to_string(),
+            avg_priority_fee: "25000000000".to_string(),
+            max_priority_fee: "100000000000".to_string(),
+            mev_events: vec![MevEvent {
+                id: 1,
+                mev_type: MevType::PossibleArbitrage,
+                severity: "medium".to_string(),
+                block_number: 18000000,
+                timestamp: "2024-01-01T00:00:00Z".to_string(),
+                description: "Arbitrage detected".to_string(),
+                involved_addresses: vec!["0x1111".to_string()],
+                involved_transactions: vec!["0xabc".to_string()],
+                estimated_value: Some("1000000000000000000".to_string()),
+                confidence: 0.6,
+            }],
+            unusual_transactions: vec!["0xdef".to_string()],
+        };
+        assert_eq!(analytics.mev_events.len(), 1);
+        assert_eq!(analytics.unusual_transactions.len(), 1);
+        assert_eq!(analytics.mev_events[0].mev_type, MevType::PossibleArbitrage);
+    }
+
+    #[test]
+    fn block_analytics_with_base_fee() {
+        let analytics = BlockAnalytics {
+            block_number: 18000000,
+            timestamp: "2024-01-01".to_string(),
+            tx_count: 100,
+            gas_used: 15000000,
+            gas_limit: 30000000,
+            base_fee: Some("20000000000".to_string()),
+            total_priority_fees: "1000000000000".to_string(),
+            avg_priority_fee: "10000000000".to_string(),
+            max_priority_fee: "50000000000".to_string(),
+            mev_events: vec![],
+            unusual_transactions: vec![],
+        };
+        assert_eq!(analytics.base_fee.unwrap(), "20000000000");
+        assert_eq!(analytics.tx_count, 100);
+    }
+
+    #[test]
+    fn mev_confidence_bounds() {
+        let event_low = MevEvent {
+            id: 1,
+            mev_type: MevType::PossibleSandwich,
+            severity: "low".to_string(),
+            block_number: 100,
+            timestamp: "2024-01-01".to_string(),
+            description: "test".to_string(),
+            involved_addresses: vec![],
+            involved_transactions: vec![],
+            estimated_value: None,
+            confidence: 0.0,
+        };
+        let event_high = MevEvent {
+            id: 2,
+            mev_type: MevType::PossibleSandwich,
+            severity: "high".to_string(),
+            block_number: 100,
+            timestamp: "2024-01-01".to_string(),
+            description: "test".to_string(),
+            involved_addresses: vec![],
+            involved_transactions: vec![],
+            estimated_value: None,
+            confidence: 1.0,
+        };
+        assert_eq!(event_low.confidence, 0.0);
+        assert_eq!(event_high.confidence, 1.0);
+    }
 }
